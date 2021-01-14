@@ -294,7 +294,6 @@ def event_exporter(question, tokens, labels):
         if e in question:
             event_list.append(df_event.iloc[i])
     if not event_list:
-        print('here2')
         # try finding event_literals
         for el in event_literals:
             if el in question:
@@ -372,12 +371,9 @@ def check_event(question, tokens, labels, today_gregorian, today_hijri, today_ja
             event_date.append(events.iloc[i])
 
     if event_date:
-        print("we are here")
         if year_type == "j_d":
             dat = ast.literal_eval(event_date[-1]["j_d"])
-            print(dat)
             d = jalali_to_gregorian(dat[0], dat[1], dat[2])
-            print(d)
             d = datetime.datetime(d[0], d[1], d[2])
         elif year_type == "g_d":
             dat = ast.literal_eval(event_date[-1]["j_d"])
@@ -388,7 +384,6 @@ def check_event(question, tokens, labels, today_gregorian, today_hijri, today_ja
         return d, (False, False, event_date[-1]["event"])
 
     else:
-        print(events)
         if year > 1420 and year < 1600:
             dy = year - today_hijri.year
             year = today_gregorian.year + dy
@@ -402,9 +397,6 @@ def check_event(question, tokens, labels, today_gregorian, today_hijri, today_ja
             return d, (False, False, events["event"].to_numpy()[0])
 
         if events["calender_type"].iloc[-1] == "g":
-            print("here")
-            print(datetime.datetime(year, d.month, d.day),
-                  (False, False, events["event"].to_numpy()[0]))
             return datetime.datetime(year, d.month, d.day), (False, False, events["event"].to_numpy()[0])
         elif events["calender_type"].iloc[-1] == "j":
             dj_event = ast.literal_eval(events["j_d"].iloc[-1])
