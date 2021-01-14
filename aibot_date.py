@@ -28,6 +28,7 @@ for k, v in perstr_to_num.items():
         new_dict[k + "م"] = v
     if v == 30:
         new_dict[hazm.Normalizer().normalize("سی‌ام")] = v
+new_dict[hazm.Normalizer().normalize("اول")] = 1
 
 perstr_to_num = new_dict
 
@@ -282,50 +283,56 @@ def jalali_to_gregorian(jy, jm, jd):
 df_event = pd.read_csv(os.path.join(abs_path, "database/event_data_full.csv"))
 event_literals = ["روز جهانی", "شهادت", "عید", "ولادت", "سالگرد", "سالروز", "روز مادر", "روز پدر", "روز دختر", "روز پسر",
                   "جشن", "میلاد", "عاشورا", "تاسوعا"]
-after_event = [" امسال", "چه روزی", "در ", "چه تاریخی",
-               " است", "می‌باشد", "می باشد", "کی ", "چه موقع", "سال ", "چندم", "ماه ", "؟", ".", "!", " بود", "خواهد", "اتفاق", "افتاد"]
+after_event = ["امسال", "چه روزی", "در ", "چه تاریخی", "چه روز"
+               "است", "می‌باشد", "می باشد", "کی", "چه موقع", "سال", "چندم", "ماه ", "؟", ".", "!", " بود", "خواهد", "اتفاق", "افتاد", "قرار", "چه تاریخ", "چه", "روزیه"]
 
 
 def event_exporter(question, tokens, labels):
-    event_tokens = list(np.array(tokens)[np.where(
-        (labels == "B-event") | (labels == "I-event"))])
-    person_tokens = list(np.array(tokens)[np.where(
-        (labels == "B-person") | (labels == "I-person"))])
-    organization_tokens = list(np.array(tokens)[np.where(
-        (labels == "B-organization") | (labels == "I-organization"))])
     event_list = []
-    for t in [event_tokens, person_tokens, organization_tokens]:
-        if len(t) > 0:
-            if len(t) > 1:
-                st = " ".join(t)
-            else:
-                st = t[0]
-            for i, e in enumerate(df_event["event"]):
-                if st in e:
-                    event_list.append(df_event.iloc[i])
     # try matching exactly the names of the events:
     for i, e in enumerate(df_event["event"]):
         if e in question:
             event_list.append(df_event.iloc[i])
-    # try finding event_literals
-    for el in event_literals:
-        if el in question:
-            el_loc = question.find(el)
-            if el_loc == 0:
-                el_q = cleaning(question)
-            else:
-                el_q = cleaning(question[el_loc - 1:])
-            el_q = cleaning(el_q.replace(el, ""))
-            el_q = re.sub("\d+", "", el_q)
-            el_q = re.sub(" | ".join(shamsimonthes.keys()), "", el_q)
-            el_q = re.sub(" | ".join(miladimonthes.keys()), "", el_q)
-            el_q = re.sub(" | ".join(qamariMonthes.keys()), "", el_q)
-            for ae in after_event:
-                if ae in el_q:
-                    el_q = cleaning(el_q.replace(ae, ""))
-            for i, e in enumerate(df_event["event"]):
-                if el_q in e:
-                    event_list.append(df_event.iloc[i])
+    if not event_list:
+        print('here2')
+        # try finding event_literals
+        for el in event_literals:
+            if el in question:
+                el_loc = question.find(el)
+                if el_loc == 0:
+                    el_q = question
+                else:
+                    el_q = cleaning(question[el_loc - 1:])
+                # el_q = el_q.replace(el, "")
+                el_q = re.sub("\d+", "", el_q)
+                el_q = re.sub(" | ".join(shamsimonthes.keys()), "", el_q)
+                el_q = re.sub(" | ".join(miladimonthes.keys()), "", el_q)
+                el_q = re.sub(" | ".join(qamariMonthes.keys()), "", el_q)
+                el_q = cleaning(el_q)
+                for ae in after_event:
+                    if ae in el_q:
+                        el_q = cleaning(el_q.replace(ae, ""))
+                el_q = cleaning(el_q.replace("است", ""))
+                for i, e in enumerate(df_event["event"]):
+                    if (el_q in e) or (e in el_q):
+                        event_list.append(df_event.iloc[i])
+    if not event_list:
+        event_tokens = list(np.array(tokens)[np.where(
+            (labels == "B-event") | (labels == "I-event"))])
+        person_tokens = list(np.array(tokens)[np.where(
+            (labels == "B-person") | (labels == "I-person"))])
+        organization_tokens = list(np.array(tokens)[np.where(
+            (labels == "B-organization") | (labels == "I-organization"))])
+        for t in [event_tokens, person_tokens, organization_tokens]:
+            if len(t) > 0:
+                if len(t) > 1:
+                    st = " ".join(t)
+                else:
+                    st = t[0]
+                for i, e in enumerate(df_event["event"]):
+                    if st in e:
+                        event_list.append(df_event.iloc[i])
+    
     # form the data frame
     event_list = pd.DataFrame(event_list)
     if not event_list.empty:
@@ -337,6 +344,82 @@ def event_exporter(question, tokens, labels):
                     event_list["event"] == e)[0][0]])
             event_list = pd.DataFrame(e_l)
     return event_list
+
+
+def check_event(question, tokens, labels, today_gregorian, today_hijri, today_jalali, calender_type):
+    # try events:
+    events = event_exporter(question, tokens, labels)
+    if events.empty:
+        return None, (True, True, True)
+    year = year_exporter(
+        question, today_gregorian, calender_type=calender_type)
+    year_type = "j_d"
+    if year is None:
+        year = today_gregorian.year
+        year_type = "g_d"
+    elif year > 1420 and year < 1600:
+        year_type = "h_d"
+    elif year > 1600:
+        year_type = "g_d"
+    event_date = []
+    for i in range(len(events)):
+        if year_type == "g_d":
+            a = re.findall("{}-\d+-\d+".format(year), events["g_d"].iloc[i])
+        else:
+            a = re.findall("[(]{}, \d+, \d+[)]".format(year),
+                           events[year_type].iloc[i])
+        if a:
+            event_date.append(events.iloc[i])
+
+    if event_date:
+        print("we are here")
+        if year_type == "j_d":
+            dat = ast.literal_eval(event_date[-1]["j_d"])
+            print(dat)
+            d = jalali_to_gregorian(dat[0], dat[1], dat[2])
+            print(d)
+            d = datetime.datetime(d[0], d[1], d[2])
+        elif year_type == "g_d":
+            dat = ast.literal_eval(event_date[-1]["j_d"])
+            d = convert.Hijri(dat[0], dat[1], dat[2]).to_gregorian()
+            d = datetime.datetime(d.year, d.month, d.day)
+        else:
+            d = datetime.datetime.fromisoformat(event_date[-1]["g_d"])
+        return d, (False, False, event_date[-1]["event"])
+
+    else:
+        print(events)
+        if year > 1420 and year < 1600:
+            dy = year - today_hijri.year
+            year = today_gregorian.year + dy
+        elif year <= 1420:
+            dy = year - today_jalali.year
+            year = today_gregorian.year + dy
+
+        d = datetime.datetime.fromisoformat(
+            events["g_d"].iloc[-1])
+        if d.year == year:
+            return d, (False, False, events["event"].to_numpy()[0])
+
+        if events["calender_type"].iloc[-1] == "g":
+            print("here")
+            print(datetime.datetime(year, d.month, d.day),
+                  (False, False, events["event"].to_numpy()[0]))
+            return datetime.datetime(year, d.month, d.day), (False, False, events["event"].to_numpy()[0])
+        elif events["calender_type"].iloc[-1] == "j":
+            dj_event = ast.literal_eval(events["j_d"].iloc[-1])
+            dy = year - d.year
+            g_event = jalali_to_gregorian(
+                dj_event[0] + dy, dj_event[1], dj_event[2])
+            return datetime.datetime(
+                g_event[0], g_event[1], g_event[2]), (False, False, events["events"].to_numpy()[0])
+        else:
+            dh_event = ast.literal_eval(events["h_d"].iloc[-1])
+            dy = year - d.year
+            g_event = convert.Hijri(
+                dh_event[0] + dy - 1, dh_event[1], dh_event[2]).to_gregorian()
+            return datetime.datetime(
+                g_event.year, g_event.month, g_event.day), (False, False, events["event"].to_numpy()[0])
 
 
 def build_date_fromisoformat(mtch, calender_type=-1):
@@ -696,45 +779,6 @@ def export_date_single(st_arr, today_list, calender_type_is_found, calender_type
             pass
 
     return None, (is_day_none, is_month_none, is_year_none)
-
-
-def check_event(question, tokens, labels, today_gregorian, today_hijri, today_jalali, calender_type):
-    # try events:
-    events = event_exporter(question, tokens, labels)
-    if events.empty:
-        return None, (True, True, True)
-    year = year_exporter(
-        question, today_gregorian, calender_type=calender_type)
-    if year is None:
-        year = today_gregorian.year
-    if year > 1420 and year < 1600:
-        dy = year - today_hijri.year
-        year = today_gregorian.year + dy
-    elif year <= 1420:
-        dy = year - today_jalali.year
-        year = today_gregorian.year + dy
-
-    d = datetime.datetime.fromisoformat(
-        events["g_d"].iloc[-1])
-    if d.year == year:
-        return d, (False, False, events["event"].to_numpy()[0])
-
-    if events["calender_type"].iloc[-1] == "g":
-        return datetime.datetime(year, d.month, d.day), (False, False, events["event"].to_numpy()[0])
-    elif events["calender_type"].iloc[-1] == "j":
-        dj_event = ast.literal_eval(events["j_d"].iloc[-1])
-        dy = year - d.year
-        g_event = jalali_to_gregorian(
-            dj_event[0] + dy, dj_event[1], dj_event[2])
-        return datetime.datetime(
-            g_event[0], g_event[1], g_event[2]), (False, False, events["events"].to_numpy()[0])
-    else:
-        dh_event = ast.literal_eval(events["h_d"].iloc[-1])
-        dy = year - d.year
-        g_event = convert.Hijri(
-            dh_event[0] + dy - 1, dh_event[1], dh_event[2]).to_gregorian()
-        return datetime.datetime(
-            g_event.year, g_event.month, g_event.day), (False, False, events["event"].to_numpy()[0])
 
 
 def export_date(question, tokens, labels):

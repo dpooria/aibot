@@ -7,7 +7,8 @@ from aibot_utils import cleaning
 from hazm import word_tokenize
 
 am_pm_dict = {"صبح": 0, "بعد از ظهر": 1, "عصر": 1,
-              "غروب": 1, "شب": 1, "بامداد": 0, "قبل از ظهر": 0, "قبل ظهر": 0, "امشب": 1}
+              "غروب": 1, "شب": 1, "بامداد": 0, "قبل از ظهر": 0, "قبل ظهر": 0, "امشب": 1,
+              "ظهر":1}
 
 time_literals = {
     "ساعت قبل": -1,
@@ -51,7 +52,7 @@ def fix_hour_ampm(st, hour):
         elif re.findall(" {}$".format(ampm), st):
             ampm_list.append(ampm)
     if ampm_list:
-        if am_pm_dict[ampm_list[0]] == 1:
+        if am_pm_dict[ampm_list[0]] == 1:   
             if hour < 12:
                 hour += 12
             elif hour == 12:
