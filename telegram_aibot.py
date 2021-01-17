@@ -71,10 +71,10 @@ def echo(update, context):
     res_str = st_res_show.format(type_dict[res["type"]], res["city"], res["date"],
                                  res["time"], res["religious_time"], res["calendar_type"], res["event"], res["result"])
 
-    keyboard = [
+    keyboard = [[
         InlineKeyboardButton("👍", callback_data='positive'),
         InlineKeyboardButton("👎", callback_data='negative'),
-    ]
+    ]]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     update.message.reply_text(res_str, reply_markup=reply_markup)
@@ -121,8 +121,12 @@ def button(update, context):
     # Some clients may have trouble otherwise. See https://core.telegram.org/bots/api#callbackquery
     query.answer()
 
-    with open("collect2/userID{}FeedBack{}.txt".format(update.message.chat.username, query.data), "a") as ffeed:
-        print(query.message, end="\n\n", file=ffeed)
+    if not query.data == "Null":
+        with open("collect2/userID{}FeedBack{}.txt".format(query.id, query.data), "a") as ffeed:
+            print(query.message, end="\n\n", file=ffeed)
+        keyboard = [[InlineKeyboardButton('ممنون از شما!', callback_data='Null')]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        query.message.edit_reply_markup(reply_markup=reply_markup)
 
 
 def error(update, context):
@@ -145,14 +149,13 @@ def main():
 
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
-
     # on different commands - answer in Telegram
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("report", report))
     dp.add_handler(CommandHandler("help", help))
     dp.add_handler(CommandHandler("question", echo))
     dp.add_handler(CallbackQueryHandler(button))
-    
+
     # on noncommand i.e message - echo the message on Telegram
     dp.add_handler(MessageHandler(Filters.text, echo))
 

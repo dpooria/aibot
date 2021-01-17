@@ -25,7 +25,11 @@ class Time:
         self.countries_df = pd.read_csv(
             os.path.join(abs_path, "database/Countries.csv"))
         self.zone_df = pd.read_csv(os.path.join(abs_path, "database/zone.csv"))
-        tehran_tz = Weather.get_city_info("تهران")["timezone"]
+        tehran_tz = Weather.get_city_info("تهران")
+        if tehran_tz:
+            tehran_tz = tehran_tz["timezone"]
+        else:
+            tehran_tz = "+12600"
         self.local_time = pytz.timezone(self.possible_timezones(tehran_tz)[0])
 
     @staticmethod
@@ -125,7 +129,7 @@ class Time:
                             city_info["timezone"], False)
                     if p_tz:
                         time_zone_list.append(p_tz[0])
-        
+
         if location_country:
             location_country = list(np.unique(location_country))
             for l in location_country:
