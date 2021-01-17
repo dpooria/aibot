@@ -16,8 +16,8 @@ bot.
 """
 
 import logging
-
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler
 from aibot import BOT
 
 
@@ -43,13 +43,13 @@ logger = logging.getLogger(__name__)
 
 def start(update, context):
     """Send a message when the command /start is issued."""
-    update.message.reply_text(""" سلام. ممنون از شما که وقت میزارید و در تست این ربات به من کمک می‌کنید!
+    update.message.reply_text(""" سلام. ممنون از شما که وقت میزارید و در تست این ربات به ما کمک می‌کنید!
      سوال های شما باید از چهار نوع 
      آب و هوا
      اوقات شرعی
      ساعت
      تقویم
-     باشند. اگر سوال مربوط به این ۴ نوع نبود ربات عبارت <<خارج از توان>> را برمیگردونه. لطفا در صورت هرگونه مشکل منو در جریان بزارید.
+     باشند. اگر سوال مربوط به این ۴ نوع نبود ربات عبارت <<خارج از توان>> را برمیگردونه. لطفا در صورت هرگونه مشکل به آیدی زیر پیام دهید.
      @dpooria75
      یا از طریق <<گزارش خطا>> گزارش دهید.
         """)
@@ -62,7 +62,7 @@ def report(update, context):
     update.message.reply_text('ممنون. گزارش شما ثبت شد')
 
 
-st_res_show = "نوع سوال: {} \n نام شهرها: {} \n تاریخ: {} \n زمان: {} \n اوقات شرعی: {} \n نوع تقویم: {} \n مناسبت‌ها: {} \n جواب شما: {}"
+st_res_show = "نوع سوال: {} \n نام شهرها: {} \n تاریخ: {} \n زمان: {} \n اوقات شرعی: {} \n نوع تقویم: {} \n مناسبت‌ها: {} \n جواب شما: {} \n لطفا در زیر درست یا غلط بودن پاسخ را مشخص کنید"
 
 
 def echo(update, context):
@@ -70,7 +70,14 @@ def echo(update, context):
     res = bot.AIBOT(update.message.text)
     res_str = st_res_show.format(type_dict[res["type"]], res["city"], res["date"],
                                  res["time"], res["religious_time"], res["calendar_type"], res["event"], res["result"])
-    update.message.reply_text(res_str)
+
+    keyboard = [
+        InlineKeyboardButton("👍", callback_data='positive'),
+        InlineKeyboardButton("👎", callback_data='negative'),
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    update.message.reply_text(res_str, reply_markup=reply_markup)
     with open("collect/userID{}Question{}.txt".format(update.message.chat.username, res["result"]), "a") as f_res:
         print(update.message.text, file=f_res)
         print("\n", file=f_res)
@@ -91,7 +98,7 @@ def help(update, context):
         -امروز تبریز در چه ساعتی سردتر است 
         -اختلاف دمای تهران و اصفهان در موقع اذان ظهر چه قدر است؟
         *تقویم
-        -امروز چه مناسبتی وجود دارد
+        -امروز چه مناسبتی وجود دارد.add_handler(CallbackQueryHandler(button))
         -چهارشنبه هفته بعد چندم است
         -روز ۱۲-۱۰-۱۳۹۹ چند شنبه بود
         -عاشورای حسینی سال بعد چندم است
@@ -105,6 +112,17 @@ def help(update, context):
         -نیمه شب شرعی پس فردا شب در مشهد چه زمانی است
         -فاصله بین اذان مغرب و غروب آفتاب امروز در تبریز چقدر است"""
     update.message.reply_text(helpText)
+
+
+def button(update, context):
+    query = update.callback_query
+
+    # CallbackQueries need to be answered, even if no notification to the user is needed
+    # Some clients may have trouble otherwise. See https://core.telegram.org/bots/api#callbackquery
+    query.answer()
+
+    with open("collect2/userID{}FeedBack{}.txt".format(update.message.chat.username, query.data), "a") as ffeed:
+        print(query.message, end="\n\n", file=ffeed)
 
 
 def error(update, context):
@@ -132,8 +150,9 @@ def main():
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("report", report))
     dp.add_handler(CommandHandler("help", help))
-    dp.add_handler(CommandHandler("question", echo))  
-
+    dp.add_handler(CommandHandler("question", echo))
+    dp.add_handler(CallbackQueryHandler(button))
+    
     # on noncommand i.e message - echo the message on Telegram
     dp.add_handler(MessageHandler(Filters.text, echo))
 
