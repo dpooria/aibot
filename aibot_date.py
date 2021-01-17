@@ -69,7 +69,9 @@ day_literals = {"فردا": 1, "روز بعد": 1, "روز آینده": 1, "ام
                 "پس‌فردا": 2,
                 "پریروز": -2,
                 "پس فردا": 2,
-                "پسفردا": 2
+                "پسفردا": 2,
+                "روز دیگر": 1,
+                "روز دیگه": 1
                 }
 
 week_literals = {"هفته‌ی آینده": 1,
@@ -331,7 +333,7 @@ def event_exporter(question, tokens, labels):
                 for i, e in enumerate(df_event["event"]):
                     if st in e:
                         event_list.append(df_event.iloc[i])
-    
+
     # form the data frame
     event_list = pd.DataFrame(event_list)
     if not event_list.empty:

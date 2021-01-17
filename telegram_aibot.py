@@ -56,7 +56,7 @@ def start(update, context):
 
 
 def report(update, context):
-    """Send a message when the command /help is issued."""
+    """Send a message when the command /report is issued."""
     with open("report/reports.txt", "a") as freport:
         print(update.message.text, file=freport)
     update.message.reply_text('ممنون. گزارش شما ثبت شد')
@@ -66,7 +66,7 @@ st_res_show = "نوع سوال: {} \n نام شهرها: {} \n تاریخ: {} \n
 
 
 def echo(update, context):
-    """Echo the user message."""
+    """on text message"""
     res = bot.AIBOT(update.message.text)
     res_str = st_res_show.format(type_dict[res["type"]], res["city"], res["date"],
                                  res["time"], res["religious_time"], res["calendar_type"], res["event"], res["result"])
@@ -78,6 +78,33 @@ def echo(update, context):
         print("\n", file=f_res)
         print(res, file=f_res)
         print("\n\n\n", file=f_res)
+
+
+def help(update, context):
+    """on help"""
+    helpText = """سوال‌های شما باید به صورت جمله کامل و در مورد یکی از موضوع‌های آب و هوا، تقویم، ساعت و اوقات شرعی باشند؛ 
+        نمونه‌ای از سوالات:
+        *آب و هوا
+        -هوای تهران در اول بهمن ماه ساعت ۸ شب چند درجه است
+        -دمای هوای اصفهان الان چقدر است؟
+        -وضعیت هوای مشهد فردا ساعت ۱۱ چطور است؟
+        -امروز تبریز در چه ساعتی سردتر است 
+        -اختلاف دمای تهران و اصفهان در موقع اذان ظهر چه قدر است؟
+        *تقویم
+        -امروز چه مناسبتی وجود دارد
+        -چهارشنبه هفته بعد چندم است
+        -روز ۱۲-۱۰-۱۳۹۹ چند شنبه بود
+        -عاشورای حسینی سال بعد چندم است
+        *ساعت
+        -الان ساعت در برلین چند است
+        -تا ساعت ۵ بعد از ظهر فردا چند ساعت مانده است
+        -اختلاف ساعت مسکو و تهران چند ساعت است
+        *اوقات شرعی
+        -اذان صبح به افق تهران چه موقع است
+        -زمان طلوع آفتاب در اصفهان را بگو
+        -نیمه شب شرعی پس فردا شب در مشهد چه زمانی است
+        -فاصله بین اذان مغرب و غروب آفتاب امروز در تبریز چقدر است"""
+    update.message.reply_text(helpText)
 
 
 def error(update, context):
@@ -104,6 +131,8 @@ def main():
     # on different commands - answer in Telegram
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("report", report))
+    dp.add_handler(CommandHandler("help", help))
+    dp.add_handler(CommandHandler("question", echo))  
 
     # on noncommand i.e message - echo the message on Telegram
     dp.add_handler(MessageHandler(Filters.text, echo))
