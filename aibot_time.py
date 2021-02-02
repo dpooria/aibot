@@ -8,7 +8,7 @@ from hazm import word_tokenize
 
 am_pm_dict = {"صبح": 0, "بعد از ظهر": 1, "عصر": 1,
               "غروب": 1, "شب": 1, "بامداد": 0, "قبل از ظهر": 0, "قبل ظهر": 0, "امشب": 1,
-              "ظهر":1}
+              "ظهر": 1}
 
 time_literals = {
     "ساعت قبل": -1,
@@ -52,7 +52,7 @@ def fix_hour_ampm(st, hour):
         elif re.findall(" {}$".format(ampm), st):
             ampm_list.append(ampm)
     if ampm_list:
-        if am_pm_dict[ampm_list[0]] == 1:   
+        if am_pm_dict[ampm_list[0]] == 1:
             if hour < 12:
                 hour += 12
             elif hour == 12:
@@ -120,63 +120,66 @@ def hour_min_exporter(st):
                     if m in st:
                         m_l.append(m)
                 if m_l:
-                    minute = minute_literals[m_l[0]]
+                    minute = minute_literals[m_l[0]]        
                 try:
+                    if hour > 24:
+                        print('torking')
+                        raise Exception
+                    return fix_hour_ampm(st, hour), minute
+                except Exception:
+                    pass
+            # try num + دقیقه
+            mtch_m = re.findall("\d+ دقیقه", st)
+            if mtch_m:
+                try:
+                    minute = int(mtch_m[0].strip("دقیقه"))
+                    hour = convertStr2num(" ".join(h_n))
                     if hour > 24:
                         raise Exception
                     return fix_hour_ampm(st, hour), minute
                 except Exception:
                     pass
-            else:
-                # try num + دقیقه
-                mtch_m = re.findall("\d+ دقیقه", st)
-                if mtch_m:
+            # maybe the writed numbers are for minute too!
+            if len(h_n) > 2:
+                try:
+                    print("oook")
+                    hour = convertStr2num(h_n[0])
+                    minute = convertStr2num(" ".join(h_n[1:]))
+                    print(hour)
+                    print(minute)
+                    if hour > 24 or minute > 60:
+                        raise Exception
+                    return fix_hour_ampm(st, hour), minute
+                except Exception:
                     try:
-                        minute = int(mtch_m[0].strip("دقیقه"))
-                        hour = convertStr2num(" ".join(h_n))
-                        if hour > 24:
+                        if len(h_n) >= 3:
+                            h_n.append("صفر")
+                            # hours are at maximum 2 numbers (<24)
+                            hour = convertStr2num(" ".join(h_n[:2]))
+                            minute = convertStr2num(" ".join(h_n[2:]))
+                            if hour > 24:
+                                raise Exception
+                            return fix_hour_ampm(st, hour), minute
+                        else:
                             raise Exception
-                        return fix_hour_ampm(st, hour), minute
-                    except Exception:
-                        pass
-                # maybe the writed numbers are for minute too!
-                if len(h_n) > 2:
-                    try:
-                        hour = convertStr2num(h_n[0])
-                        minute = convertStr2num(" ".join(h_n[1:]))
-                        if hour > 24 or minute > 60:
-                            raise Exception
-                        return fix_hour_ampm(st, hour), minute
                     except Exception:
                         try:
-                            if len(h_n) >= 3:
-                                h_n.append("صفر")
-                                # hours are at maximum 2 numbers (<24)
-                                hour = convertStr2num(" ".join(h_n[:2]))
-                                minute = convertStr2num(" ".join(h_n[2:]))
-                                if hour > 24:
-                                    raise Exception
-                                return fix_hour_ampm(st, hour), minute
-                            else:
+                            hour = convertStr2num(" ".join(h_n[:-2]))
+                            minute = convertStr2num(" ".join(h_n[-2]))
+                            if hour > 24:
                                 raise Exception
+                            return fix_hour_ampm(st, hour), minute
                         except Exception:
-                            try:
-                                hour = convertStr2num(" ".join(h_n[:-2]))
-                                minute = convertStr2num(" ".join(h_n[-2]))
-                                if hour > 24:
-                                    raise Exception
-                                return fix_hour_ampm(st, hour), minute
-                            except Exception:
-                                pass
-                else:
-                    try:
-                        hour = convertStr2num(" ".join(h_n[:-1]))
-                        minute = 0
-                        if hour > 24:
-                            raise Exception
-                        return fix_hour_ampm(hour), minute
-                    except Exception:
-                        pass
+                            pass
+            else:
+                try:
+                    hour = convertStr2num(" ".join(h_n[:-1]))
+                    minute = 0
+                    if hour > 24:
+                        raise Exception
+                    return fix_hour_ampm(hour), minute
+                except Exception:
+                    pass
 
     # try time literals
     t_l = []

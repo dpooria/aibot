@@ -163,8 +163,15 @@ class Weather:
         t_n = len(time_iso)
         no_time = False
         if t_n == 0:
-            time_list.append("12:00")
-            time_iso.append(datetime.time(12, 0))
+            if "صبح" in question:
+                time_list.append("8:00")
+                time_iso.append(datetime.time(8, 0))
+            elif "شب " in question:
+                time_list.append("21:00")
+                time_iso.append(datetime.time(21, 0))
+            else:
+                time_list.append("12:00")
+                time_iso.append(datetime.time(12, 0))
             t_n = 1
             no_time = True
         time_iso = list(np.unique(time_iso))

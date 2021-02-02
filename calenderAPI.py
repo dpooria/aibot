@@ -6,16 +6,29 @@ from hijri_converter import convert
 from timeAPI import Time
 from aibot_date import export_date, format_jalali_date, gregorian_to_jalali, tr_isoweek_toperweekday, df_event
 
-
+# TODO : fix the convert asked to also use calender_type passed from export_date function
 convert_asked = {"به قمری": 2,
                  "به شمسی": 0,
                  "به میلادی": 1,
                  "به تاریخ هجری": 2,
                  "به تاریخ شمسی": 0,
-                 "به تاریخ میلادی": 1}
+                 "به تاریخ میلادی": 1,
+                 "چندم قمری": 2,
+                 "چندم شمسی": 0,
+                 "چندم میلادی": 1,
+                 "تاریخ شمسی": 0,
+                 "تاریخ قمری": 2,
+                 "تاریخ میلادی": 1,
+                 "چندم هجری قمری": 2,
+                 "تاریخ هجری قمری": 2,
+                 "روز میلادی": 1,
+                 "روز شمسی": 0,
+                 "روز هجری قمری": 2,
+                 "روز قمری": 2,
+                 "روز هجری": 2}
 
 week_days_asked = ["چند شنبه", "چند شنبست",
-                   "چه روز از هفته", "چه روزی از هفته", "چه روز هفته"]
+                   "چه روز از هفته", "چه روزی از هفته", "چه روز هفته", "چند شنبس", "چندشنبه"]
 
 week_days = {0: "شنبه",
                 6: "جمعه",
@@ -26,7 +39,7 @@ week_days = {0: "شنبه",
                 5: "پنجشنبه"}
 
 
-event_asked = ["مناسبت", "اتفاق", "مناسبتها", "چه روزی است"]
+event_asked = ["مناسبت", "اتفاق", "مناسبتها", "چه روزی است", "وقایع"]
 
 time_asked = ["تا ساعت", "چند ساعت", "اختلاف زمان",
               "چه ساعت", "به وقت ", "ساعت چند"]
@@ -125,7 +138,7 @@ class Calender:
                         date_list[0].year, date_list[0].month, date_list[0].day)
                     d_str = "({}, {}, {})".format(d_j[0], d_j[1], d_j[2])
                     f_event = df_event["event"].loc[df_event["j_d"]
-                                                     == d_str].to_numpy()
+                                                    == d_str].to_numpy()
                     if not len(f_event) == 0:
                         answer["result"] = f_event[0].replace(
                             " و ", "-").replace("؛", "-").replace("،", "-")
@@ -145,7 +158,7 @@ class Calender:
 
                     d_str = "({}, {}, {})".format(d_j[0], d_j[1], d_j[2])
                     f_event = df_event["event"].loc[df_event["j_d"]
-                                                     == d_str].to_numpy()
+                                                    == d_str].to_numpy()
                     if not len(f_event) == 0:
                         result.append(f_event[0].replace(
                             " و ", "-").replace("؛", "-").replace("،", "-"))

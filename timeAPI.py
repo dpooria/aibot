@@ -15,7 +15,7 @@ import os
 abs_path = os.path.dirname(os.path.abspath(__file__))
 
 hours_left_asked = ["تا ساعت", "چقدر زمان",
-                    "مانده", "چند ساعت گذشته", "چقدر زمان گذشته"]
+                    "مانده", "چند ساعت گذشته", "چقدر زمان گذشته", "باقی است", "باقیست"]
 hours_difference_asked = ["اختلاف زمان", "اختلاف ساعت",
                           "فاصله ساعت", "فاصله زمان", "تفاوت زمان"]
 
@@ -135,8 +135,8 @@ class Time:
             for l in location_country:
                 tz = self.zone_df["Europe/Andorra"].iloc[np.where(
                     self.zone_df["AD"] == l)].to_numpy()
-                tz = tz[0]
-                time_zone_list.append(tz)
+                if len(tz) >= 1:
+                    time_zone_list.append(tz[0])
 
         if len(time_zone_list) == 1:
             time_res = []

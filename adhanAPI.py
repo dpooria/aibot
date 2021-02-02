@@ -16,14 +16,25 @@ tr_adhan_names = {"اذان صبح": "Fajr",
                   "اذان ظهر": "Dhuhr",
                   "اذان عصر": "Asr",
                   "اذان مغرب": "Maghrib",
-                  "اذان عشا": "Isha",
+                  "اذون صبح": "Fajr",
+                  "اذون فجر": "Fajr",
+                  "اذون ظهر": "Dhuhr",
+                  "اذون عصر": "Asr",
+                  "اذون مغرب": "Maghrib",
+                  "اذون عشا": "Isha",
                   "غروب آفتاب": "Sunset",
                   "غروب افتاب": "Sunset",
                   "نیمه شب شرعی": "Midnight",
                   "نیمه‌شب شرعی": "Midnight",
                   "امساک": "Imsak",
                   "طلوع خورشید": "Sunrise",
-                  "غروب خورشید": "Sunset"
+                  "غروب خورشید": "Sunset",
+                  "نماز صبح": "Fajr",
+                  "نماز ظهر": "Dhuhr",
+                  "نماز عصر": "Asr",
+                  "نماز مغرب": "Maghrib",
+                  "نماز عشا": "Isha",
+                  "نصف شب": "Isha"
                   }
 
 logical_question = ["اختلاف", "تفاوت", "فاصله", "فاصله‌ی"]
@@ -155,7 +166,7 @@ class Adhan:
                 date_list.append(d[0])
             if (not d[1][0]) and (not d[1][1]) and (type(d[1][2]) != bool):
                 events.append(d[1][2])
-        
+
         answer["event"] = events
         d_n = len(date_list)
         no_date = False
@@ -199,7 +210,8 @@ class Adhan:
                 return answer
             else:
                 tnow = datetime.datetime.now()
-                dt = abs(tnow - datetime.datetime.combine(tnow.date(), res))
+                dt = abs(
+                    tnow - datetime.datetime.combine(date_list[0].date(), res))
                 answer["result"] = self.format_time_delta(dt)
 
         else:

@@ -6,6 +6,8 @@ import numpy as np
 import tensorflow as tf
 import pandas as pd
 import os
+import requests
+
 
 abs_path = os.path.dirname(os.path.abspath(__file__))
 
@@ -102,7 +104,21 @@ def nerQuestion(model, tokenizer, config, text):
 df_capitals = pd.read_csv(os.path.join(abs_path, "database/capitals.csv"))
 df_province = pd.read_csv(os.path.join(abs_path, "database/provinces.csv"))
 
-loc_literals = ["شهر", "کشور", "استان", "مکان"]
+loc_literals = ["روستای", "شهرستان", "شهر", "کشور", "استان", "مکان",
+                "ده ", "دهکده", "دهات", "منطقه", "بندر", "روستا", "جزیره"]
+
+
+def get_city_info(cityName):
+    openweatherapi_5dayforecast_url = "http://api.openweathermap.org/data/2.5/forecast?q={}&APPID=ee41144a3fc05599947c9ffe87e12bd4&units=metric&lang=fa&cnt=1"
+    try:
+        data = requests.get(
+            openweatherapi_5dayforecast_url.format(cityName)).json()
+    except:
+        return None
+    if data["cod"] == "200":
+        return data["city"]
+    else:
+        return None
 
 
 def location_fix(question, location):
@@ -122,14 +138,16 @@ def location_fix(question, location):
     return location_fixed
 
 
-def location_handler(question, tokens, labels):
+def location_(question, tokens, labels):
     bloc = np.array(tokens)[labels == "B-location"]
     iloc = np.array(tokens)[labels == "I-location"]
     if len(bloc) == 0 and len(iloc) == 0:
         return []
     if len(bloc) == 0 and len(iloc) != 0:
-        return location_fix(question, list(iloc))
+        return location_fix(question, [cleaning(" ".join(list(iloc)))])
     if len(bloc) == 1:
+        if bloc[0] in loc_literals:
+            return location_fix(question, [cleaning(" ".join(list(iloc)))])
         return location_fix(question, [cleaning(" ".join(np.r_[bloc, iloc]))])
     if len(iloc) == 0:
         return location_fix(question, bloc)
@@ -137,12 +155,61 @@ def location_handler(question, tokens, labels):
         bloc_loc = np.where(labels == "B-location")[0]
         iloc_loc = np.where(labels == "I-location")[0]
         locs = []
+        new_bloc_loc = []
+        new_bloc = []
+        for i, b in enumerate(bloc_loc):
+            if not tokens[b] in loc_literals:
+                new_bloc_loc.append(b)
+                new_bloc.append(bloc[i])
+            else:
+                new_bloc_loc.append(iloc_loc[iloc_loc > b][0])
+                new_bloc.append(iloc[iloc_loc > b][0])
+
+        bloc_loc = np.array(new_bloc_loc)
+        bloc = np.array(new_bloc)
         for i in range(len(bloc)):
             if i == len(bloc) - 1:
                 iloc_ = iloc[(iloc_loc > bloc_loc[i])]
             else:
+                print((iloc_loc < bloc_loc[i + 1]))
+                print((iloc_loc > bloc_loc[i]))
                 iloc_ = iloc[(iloc_loc > bloc_loc[i]) &
                              (iloc_loc < bloc_loc[i + 1])]
             locs.append(location_fix(question,
                                      [cleaning(" ".join(np.r_[[bloc[i]], iloc_]))])[0])
+        if locs:
+            for i, l in enumerate(locs):
+                locs[i] = l.replace(" ", "‌")
         return locs
+
+
+def location_handler(question, tokens, labels):
+    loc = location_(question, tokens, labels)
+    print(loc)
+    if loc:
+        problem_list = []
+        for i, l in enumerate(loc):
+            l_inf = get_city_info(l)
+            problem = False
+            if not l_inf:
+                problem = True
+            problem_list.append([i, problem])
+        w_t = np.array(hazm.word_tokenize(question))
+        bloc = np.where(labels == "B-location")[0] - 1
+        iloc = np.where(labels == "I-location")[0] - 1
+        print(bloc)
+        print(len(bloc))
+        print(len(loc))
+        if len(bloc) >= len(problem_list):
+            print("so far so good")
+            for i in range(len(problem_list)):
+                if problem_list[i][1]:
+                    if i != len(problem_list) - 1:
+                        il = iloc[(iloc > bloc[i]) & (iloc < bloc[i+1])]
+                    else:
+                        il = iloc[iloc > bloc[i]]
+                    loc[i] = location_fix(
+                        question, [" ".join(w_t[np.r_[bloc[i], il]])])[0]
+                    # print(w_t[np.r_[bloc[i], il]])
+    print(loc)
+    return loc
