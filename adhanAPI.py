@@ -7,40 +7,11 @@ import numpy as np
 import pandas as pd
 
 from aibot_date import export_date, format_jalali_date, gregorian_to_jalali
-from aibot_utils import location_handler
+from aibot_utils import location_handler, read_dict
 
-tr_adhan_names = {"اذان صبح": "Fajr",
-                  "اذان فجر": "Fajr",
-                  "طلوع آفتاب": "Sunrise",
-                  "طلوع افتاب": "Sunrise",
-                  "اذان ظهر": "Dhuhr",
-                  "اذان عصر": "Asr",
-                  "اذان مغرب": "Maghrib",
-                  "اذون صبح": "Fajr",
-                  "اذون فجر": "Fajr",
-                  "اذون ظهر": "Dhuhr",
-                  "اذون عصر": "Asr",
-                  "اذون مغرب": "Maghrib",
-                  "اذون عشا": "Isha",
-                  "غروب آفتاب": "Sunset",
-                  "غروب افتاب": "Sunset",
-                  "نیمه شب شرعی": "Midnight",
-                  "نیمه‌شب شرعی": "Midnight",
-                  "امساک": "Imsak",
-                  "طلوع خورشید": "Sunrise",
-                  "غروب خورشید": "Sunset",
-                  "نماز صبح": "Fajr",
-                  "نماز ظهر": "Dhuhr",
-                  "نماز عصر": "Asr",
-                  "نماز مغرب": "Maghrib",
-                  "نماز عشا": "Isha",
-                  "نصف شب": "Isha"
-                  }
-
-logical_question = ["اختلاف", "تفاوت", "فاصله", "فاصله‌ی"]
-
-
-hours_left_asked = ["تا اذان", "چقدر زمان", "مانده"]
+tr_adhan_names = read_dict("dictionary/tr_adhan_names.dict")
+logical_question = read_dict("dictionary/logical_question.list")
+hours_left_asked = read_dict("dictionary/hours_left_asked.list")
 
 
 def get_city_info(cityName):

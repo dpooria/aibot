@@ -1,4 +1,5 @@
 
+from aibot_utils import read_dict
 import numpy as np
 import pandas as pd
 import datetime
@@ -7,42 +8,11 @@ from timeAPI import Time
 from aibot_date import export_date, format_jalali_date, gregorian_to_jalali, tr_isoweek_toperweekday, df_event
 
 # TODO : fix the convert asked to also use calender_type passed from export_date function
-convert_asked = {"به قمری": 2,
-                 "به شمسی": 0,
-                 "به میلادی": 1,
-                 "به تاریخ هجری": 2,
-                 "به تاریخ شمسی": 0,
-                 "به تاریخ میلادی": 1,
-                 "چندم قمری": 2,
-                 "چندم شمسی": 0,
-                 "چندم میلادی": 1,
-                 "تاریخ شمسی": 0,
-                 "تاریخ قمری": 2,
-                 "تاریخ میلادی": 1,
-                 "چندم هجری قمری": 2,
-                 "تاریخ هجری قمری": 2,
-                 "روز میلادی": 1,
-                 "روز شمسی": 0,
-                 "روز هجری قمری": 2,
-                 "روز قمری": 2,
-                 "روز هجری": 2}
-
-week_days_asked = ["چند شنبه", "چند شنبست",
-                   "چه روز از هفته", "چه روزی از هفته", "چه روز هفته", "چند شنبس", "چندشنبه"]
-
-week_days = {0: "شنبه",
-                6: "جمعه",
-                1: "یکشنبه",
-                2: "دوشنبه",
-                3: "سه‌شنبه",
-                4: "چهارشنبه",
-                5: "پنجشنبه"}
-
-
-event_asked = ["مناسبت", "اتفاق", "مناسبتها", "چه روزی است", "وقایع"]
-
-time_asked = ["تا ساعت", "چند ساعت", "اختلاف زمان",
-              "چه ساعت", "به وقت ", "ساعت چند"]
+convert_asked = read_dict("dictionary/convert_asked.dict")
+week_days_asked = read_dict("dictionary/week_days_asked.list")
+week_days = read_dict("dictionary/week_days.dict")
+event_asked = read_dict("dictionary/event_asked.list")
+time_asked = read_dict("dictionary/time_asked.list")
 
 
 class Calender:

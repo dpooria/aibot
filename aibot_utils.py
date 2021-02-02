@@ -1,4 +1,5 @@
 
+import ast
 import hazm
 import re
 from cleantext import clean
@@ -10,6 +11,13 @@ import requests
 
 
 abs_path = os.path.dirname(os.path.abspath(__file__))
+
+
+def read_dict(file_path):
+    with open(file_path, "r") as f_dict:
+        st = f_dict.readlines()[0]
+        new_dict = ast.literal_eval(st)
+    return new_dict
 
 
 def cleaning(text):
@@ -104,8 +112,7 @@ def nerQuestion(model, tokenizer, config, text):
 df_capitals = pd.read_csv(os.path.join(abs_path, "database/capitals.csv"))
 df_province = pd.read_csv(os.path.join(abs_path, "database/provinces.csv"))
 
-loc_literals = ["روستای", "شهرستان", "شهر", "کشور", "استان", "مکان",
-                "ده ", "دهکده", "دهات", "منطقه", "بندر", "روستا", "جزیره"]
+loc_literals = read_dict("dictionary/loc_literals.list")
 
 
 def get_city_info(cityName):

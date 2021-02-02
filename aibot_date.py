@@ -8,116 +8,36 @@ from hijri_converter import convert
 import re
 import datetime
 from hazm import word_tokenize
-from aibot_utils import cleaning
+from aibot_utils import cleaning, read_dict
 import os
 
 abs_path = os.path.dirname(os.path.abspath(__file__))
 
 
 perAnd = " و "
-perstr_to_num = {"یک": 1, "دو": 2, "سه": 3, "چهار": 4, "پنج": 5, "شش": 6, "هفت": 7, "هشت": 8, "نه": 9, "ده": 10, "یازده": 11, "دوازده": 12, "سیزده": 13, "چهارده": 14, "پانزده": 15, "شانزده": 16, "هفده": 17, "هجده": 18, "نوزده": 19, "بیست": 20, "سی": 30,
-                 "چهل": 40, "پنجاه": 50, "شصت": 60, "هفتاد": 70, "هشتاد": 80, "نود": 90, "صد": 100, "دویست": 200, "سیصد": 300, "چهارصد": 400, "پانصد": 500, "ششصد": 600, "هفتصد": 700, "هشتصد": 800, "نهصد": 900, "هزار": 1000, "میلیون": 1000000, "میلیارد": 1000000000, "صفر": 0}
-num_to_perstr = {v: k for k, v in zip(
-    perstr_to_num.keys(), perstr_to_num.values())}
-new_dict = {}
-for k, v in perstr_to_num.items():
-    new_dict[k] = v
-    if v == 3:
-        new_dict["سوم"] = v
-        new_dict["سومین"] = v
-    else:
-        new_dict[k + "م"] = v
-    new_dict[k + "مین"] = v
-    if v == 30:
-        new_dict[hazm.Normalizer().normalize("سی‌ام")] = v
-        new_dict[hazm.Normalizer().normalize("سی‌امین")] = v
+perstr_to_num = read_dict("dictionary/perstr_to_num.dict")
+num_to_perstr = read_dict("dictionary/num_to_perstr.dict")
 
-new_dict[hazm.Normalizer().normalize("اول")] = 1
-new_dict["اولین"] = 1
+miladimonthes = read_dict("dictionary/miladimonthes.dict")
+shamsimonthes = read_dict("dictionary/shamsimonthes.dict")
+qamariMonthes = read_dict("dictionary/qamariMonthes.dict")
 
-perstr_to_num = new_dict
-
-miladimonthes = {"ژانویه": 1, "فوریه": 2, "مارس": 3, "آوریل": 4, "آپریل": 4, "مارچ": 3, "مه": 5, "می": 5, "ژوئن": 6, "ژون": 6,
-                 "ژوئیه": 7, "جولای": 7, "اوت": 8, "آگوست": 8, "سپتامبر": 9, "اکتبر": 10, "نوامبر": 11, "دسامبر": 12, "اپریل": 4, "اوریل": 4, "اگوست": 8}
-shamsimonthes = {"فروردین": 1, "اردیبهشت": 2, "خرداد": 3, "تیر": 4, "مرداد": 5, "شهریور": 6,
-                 "مهر": 7, "آبان": 8, "آذر": 9, "دی": 10, "بهمن": 11, "اسفند": 12, "ابان": 8, "اذر": 9, "اَمرداد": 5}
-qamariMonthes = {"محرم": 1, "صفر": 2, "ربیع الاول": 3, "ربیع الثانی": 4, "جمادی الاول": 5,
-                 "جمادی الثانی": 6, "رجب": 7, "شعبان": 8, "رمضان": 9, "شوال": 10, "ذیحجه": 11, "ذیقعده": 12,
-                 "ذوالحجه": 11, "ذوالقعده": 12, "جمادی الثانیه": 6, }
-
-tr_engnum_arabicnum = {"0": "۰", "1": "۱", "2": "۲", "3": "۳",
-                       "4": "۴", "5": "۵", "6": "۶", "7": "۷", "8": "۸", "9": "۹"}
-tr_arabicnum_engnum = {v: k for k, v in tr_engnum_arabicnum.items()}
-
-year_literals = {"سال پیش": -1, "سال قبل": -1, "سال گذشته": -
-                 1, "سال آینده": 1, "سال بعد": 1, "سال پیش رو": 1, "امسال": 0,
-                 "پارسال": -1,
-                 "سال اینده": 1,
-                 "سال جاری": 0,
-                 "سال دیگه": 1,
-                 "سال دیگر": 1}
-
-day_literals = {"فردا": 1, "روز بعد": 1, "روز آینده": 1, "امروز": 0, "فردای": 1,
-                "دیروز": -1, "روز پیش": -1, "روز گذشته": -1, "روز قبل": -1, "روز اینده": 1,
-                "هفته‌ی آینده": 7,
-                "هفته آینده": 7,
-                "هفته اینده": 7,
-                "هفته‌ی اینده": 7,
-                "هفته بعد": 7,
-                "هفته‌ی بعد": 7,
-                "هفته دیگر": 7,
-                "هفته‌ی دیگر": 7,
-                "هفته‌ی گذشته": -7,
-                "هفته گذشته": -7,
-                "هفته قبل": -7,
-                "هفته‌ی قبل": -7,
-                "هفته پیش": -7,
-                "هفته‌ی پیش": -7,
-                "پس‌فردا": 2,
-                "پریروز": -2,
-                "پس فردا": 2,
-                "پسفردا": 2,
-                "روز دیگر": 1,
-                "روز دیگه": 1,
-                "روز دیگ": 1
-                }
-
-week_literals = {"هفته‌ی پیش رو": 1,
-                 "هفته‌ی آینده": 1,
-                 "هفته آینده": 1,
-                 "هفته اینده": 1,
-                 "هفته‌ی اینده": 1,
-                 "هفته بعد": 1,
-                 "هفته‌ی بعد": 1,
-                 "هفته دیگر": 1,
-                 "هفته‌ی دیگر": 1,
-                 "هفته‌ی گذشته": -1,
-                 "هفته گذشته": -1,
-                 "هفته قبل": -1,
-                 "هفته‌ی قبل": -1,
-                 "هفته پیش": -1,
-                 "هفته‌ی پیش": -1,
-                 "این هفته": 0,
-                 "هفته‌ی جاری": 0
-                 }
-
-weeks_day_dict = {"شنبه": 0, "یکشنبه": 1, "دوشنبه": 2, "سه‌شنبه": 3, "چهارشنبه": 4, "پنج‌شنبه": 5, "جمعه": 6, "پنج شنبه": 5, "پنجشنبه": 5, "یک‌شنبه": 1, "یک شنبه": 1, "دو شنبه": 2, "دو‌شنبه": 2, "سه شنبه": 3, "چهار‌شنبه": 4, "آدینه": 6, "ادینه": 6
-                  }
-
-
-week_days_asked = ["چند شنبه", "چند شنبست",
-                   "چه روز از هفته", "چه روزی از هفته", "چه روز هفته"]
+tr_engnum_arabicnum = read_dict("dictionary/tr_engnum_arabicnum.dict")
+tr_arabicnum_engnum = read_dict("dictionary/tr_arabicnum_engnum.dict")
+year_literals = read_dict("dictionary/year_literals.dict")
+day_literals = read_dict("dictionary/day_literals.dict")
+week_literals = read_dict("dictionary/week_literals.dict")
+weeks_day_dict = read_dict("dictionary/weeks_day_dict.dict")
+month_literals = read_dict("dictionary/month_literals.dict")
+calender_type_dict = read_dict("dictionary/calender_type_dict.dict")
+week_days_asked = read_dict("dictionary/week_days_asked.list")
+df_event = pd.read_csv(os.path.join(abs_path, "database/event_data_full.csv"))
+event_literals = read_dict("dictionary/event_literals.list")
+after_event = read_dict("dictionary/after_event.list")
 
 
 def tr_isoweek_toperweekday(n): return n - 5 if n >= 5 else n + 2
 def tr_perweekday_toisoweek(n): return n + 5 if n <= 1 else n - 2
-
-
-month_literals = {"این ماه": 0, "ماه جاری": 0, "این برج": 0, "ماه آینده": 1, "برج بعد": 1, "ماه بعد": 1,
-                  "ماه اینده": 1, "برج اینده": 1, "ماه بعد": 1, "برج قبل": -1, "ماه پیش": -1, "ماه گذشته": -1, "ماه قبل": -1}
-
-calender_type_dict = {"شمسی": 0, "میلادی": 1,
-                      "هجری قمری": 2, "قمری": 2, "جلالی": 0, "هجری شمسی": 0}
 
 
 def format_jalali_date(j):
@@ -289,37 +209,6 @@ def jalali_to_gregorian(jy, jm, jd):
         gd -= sal_a[gm]
         gm += 1
     return [gy, gm, gd]
-
-
-df_event = pd.read_csv(os.path.join(abs_path, "database/event_data_full.csv"))
-event_literals = ["روز جهانی", "شهادت", "عید", "ولادت", "سالگرد", "سالروز", "روز مادر", "روز پدر", "روز دختر", "روز پسر",
-                  "جشن", "میلاد", "عاشورا", "تاسوعا"]
-after_event = ["چه روزی",
-               "چه تاریخی",
-               "چه تاریخ",
-               "چه روز",
-               "است",
-               "می‌باشد",
-               "می باشد",
-               "کیه",
-               "کی",
-               "چه موقع",
-               "امسال",
-               "سال",
-               "چندم",
-               "ماه ",
-               "؟", ".", "!",
-               " بود",
-               "خواهد",
-               "اتفاق",
-               "افتاد",
-               "قرار",
-               "چه",
-               "روزیه",
-               "روزی",
-               "در "
-               "ه "
-               ]
 
 
 def event_exporter(question, tokens, labels):

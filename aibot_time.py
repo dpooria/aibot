@@ -3,43 +3,12 @@ import datetime
 import re
 from aibot_date import convertStr2num, perstr_to_num
 import numpy as np
-from aibot_utils import cleaning
+from aibot_utils import cleaning, read_dict
 from hazm import word_tokenize
 
-am_pm_dict = {"صبح": 0, "بعد از ظهر": 1, "عصر": 1,
-              "غروب": 1, "شب": 1, "بامداد": 0, "قبل از ظهر": 0, "قبل ظهر": 0, "امشب": 1,
-              "ظهر": 1}
-
-time_literals = {
-    "ساعت قبل": -1,
-    "ساعت گذشته": -1,
-    "ساعت پیش": -1,
-    "ساعت آینده": 1,
-    "ساعت اینده": 1,
-    "ساعت بعد": 1,
-    "ساعت دیگر": 1,
-    "دقیقه بعد": 1.0/60,
-    "دقیقه آینده": 1.0/60,
-    "دقیقه اینده": 1.0/60,
-    "دقیقه‌ی بعد": 1.0/60,
-    "دقیقه‌ی آینده": 1.0/60,
-    "دقیقه‌ی اینده": 1.0/60,
-    "دقیقه قبل": -1.0/60,
-    "دقیقه گذشته": -1.0/60,
-    "دقیقه پیش": -1.0/60,
-    "دقیقه‌ی گذشته": -1.0/60,
-    "دقیقه‌ی قبل": -1.0/60,
-    "دقیقه‌ی پیش": -1.0/60,
-    "دقیقه‌ی دیگر": 1.0/60,
-    "دقیقه دیگر": 1.0/60,
-    "الان": 0,
-    "همین الآن": 0,
-    "همین حالا": 0,
-    "همین الان": 0,
-    "این لحظه": 0,
-    "این ساعت": 0}
-
-minute_literals = {"و نیم": 30, "و ربع": 15}
+am_pm_dict = read_dict("dictionary/am_pm_dict.dict")
+time_literals = read_dict("dictionary/time_literals.dict")
+minute_literals = read_dict("dictionary/minute_literals.dict")
 
 
 def fix_hour_ampm(st, hour):
@@ -120,7 +89,7 @@ def hour_min_exporter(st):
                     if m in st:
                         m_l.append(m)
                 if m_l:
-                    minute = minute_literals[m_l[0]]        
+                    minute = minute_literals[m_l[0]]
                 try:
                     if hour > 24:
                         raise Exception

@@ -6,6 +6,7 @@ import pandas as pd
 import datetime
 from aibot_date import export_date, gregorian_to_jalali, format_jalali_date
 from aibot_time import export_time
+from aibot_utils import read_dict
 from adhanAPI import Adhan
 
 weather_logical1 = {"سردترین": np.argmin, "سرد ترین": np.argmin, "سرد‌ترین": np.argmin, "گرم ترین": np.argmax, "گرمترین": np.argmax,
@@ -16,18 +17,13 @@ weather_logical2 = {"سردترین": np.min, "سرد ترین": np.min, "سرد
                     "گرم‌ترین": np.max, "میانگین دما": np.mean, "اختلاف دما": np.diff, "حداقل دما": np.min, "حداکثر دما": np.max, "بیشترین": np.max,
                     "بیشینه": np.max, "کمینه": np.min, "کمترین": np.min, "کم‌ترین": np.min, "سردتر": np.min, "گرم‌تر": np.max, "گرمتر": np.max, "اختلاف": np.diff}
 
-
-weather_description_asked = ["چطور", "چگونه", "چه طور",  "چه‌طور",
-                             "بارانی", "برفی", "ابری", "آفتابی", "طوفانی", "چه وضعی", "چه‌صورت", "چه صورت"]
-weather_temperature_asked = ["چند درجه", "درجه هوا",
-                             "درجه‌ی هوا", "دمای هوا", "میزان دما", "مقدار دما", "درجه هوا", "میزان دما", "چقدر است", "چقدر می‌باشد"]
-
-tr_weather_description = {"Clear": "آفتابی", "Clouds": "ابری",
-                          "Rain": "بارانی", "Snow": "برفی", "Extreme": "طوفانی"}
-
-day_asked = ["کدام روز", "چه روز", "چه روزی", "چه‌روزی", "چه‌روز"]
-time_asked = ["چه ساعت", "کدام ساعت",
-              "چه ساعتی", "چه‌ساعتی", "چه‌ساعت"]
+weather_description_asked = read_dict(
+    "dictionary/weather_description_asked.list")
+weather_temperature_asked = read_dict(
+    "dictionary/weather_temperature_asked.list")
+tr_weather_description = read_dict("dictionary/tr_weather_description.dict")
+day_asked = read_dict("dictionary/day_asked.list")
+time_asked = read_dict("dictionary/time_asked.list")
 
 # Class to handle weather api
 
