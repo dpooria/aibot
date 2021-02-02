@@ -123,7 +123,6 @@ def hour_min_exporter(st):
                     minute = minute_literals[m_l[0]]        
                 try:
                     if hour > 24:
-                        print('torking')
                         raise Exception
                     return fix_hour_ampm(st, hour), minute
                 except Exception:
@@ -142,11 +141,8 @@ def hour_min_exporter(st):
             # maybe the writed numbers are for minute too!
             if len(h_n) > 2:
                 try:
-                    print("oook")
                     hour = convertStr2num(h_n[0])
                     minute = convertStr2num(" ".join(h_n[1:]))
-                    print(hour)
-                    print(minute)
                     if hour > 24 or minute > 60:
                         raise Exception
                     return fix_hour_ampm(st, hour), minute

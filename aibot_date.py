@@ -683,8 +683,6 @@ def month_matched(st_space, month_place, today, calender_type=0):
     day_is_none = False
     year_is_none = False
     day, _ = day_exporter(st_space[:month_place], today)
-    print("hey", day)
-    print(day)
     if _:
         day = day.day
     if not day:
@@ -762,7 +760,6 @@ def export_date_single(st_arr, today_list, calender_type_is_found, calender_type
             pass
 
     st = st_space
-    print('what???')
     # try monthes name
     mtch = re.findall(" | ".join(shamsimonthes.keys()), st)
     if not mtch:
@@ -912,7 +909,6 @@ def export_date(question, tokens, labels):
                 question), today_list, calender_type_is_found, calender_type)]
         return d_
     else:
-        print("ok")
         st_arr = []
         for t in np.r_[b_date, i_date]:
             st_arr.append(tokens[int(t)])
@@ -926,5 +922,4 @@ def export_date(question, tokens, labels):
         if d_[0] == None:
             d_ = check_event(question, tokens, labels, today_gregorian,
                              today_hijri, today_jalali, calender_type)
-        print(d_)
         return [d_]

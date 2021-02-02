@@ -171,8 +171,6 @@ def location_(question, tokens, labels):
             if i == len(bloc) - 1:
                 iloc_ = iloc[(iloc_loc > bloc_loc[i])]
             else:
-                print((iloc_loc < bloc_loc[i + 1]))
-                print((iloc_loc > bloc_loc[i]))
                 iloc_ = iloc[(iloc_loc > bloc_loc[i]) &
                              (iloc_loc < bloc_loc[i + 1])]
             locs.append(location_fix(question,
@@ -185,7 +183,6 @@ def location_(question, tokens, labels):
 
 def location_handler(question, tokens, labels):
     loc = location_(question, tokens, labels)
-    print(loc)
     if loc:
         problem_list = []
         for i, l in enumerate(loc):
@@ -197,11 +194,7 @@ def location_handler(question, tokens, labels):
         w_t = np.array(hazm.word_tokenize(question))
         bloc = np.where(labels == "B-location")[0] - 1
         iloc = np.where(labels == "I-location")[0] - 1
-        print(bloc)
-        print(len(bloc))
-        print(len(loc))
         if len(bloc) >= len(problem_list):
-            print("so far so good")
             for i in range(len(problem_list)):
                 if problem_list[i][1]:
                     if i != len(problem_list) - 1:
@@ -211,5 +204,4 @@ def location_handler(question, tokens, labels):
                     loc[i] = location_fix(
                         question, [" ".join(w_t[np.r_[bloc[i], il]])])[0]
                     # print(w_t[np.r_[bloc[i], il]])
-    print(loc)
     return loc
