@@ -6,14 +6,9 @@ import datetime
 from hijri_converter import convert
 from timeAPI import Time
 from aibot_date import export_date, format_jalali_date, gregorian_to_jalali, tr_isoweek_toperweekday, df_event
+from vocab import convert_asked, week_days, week_days_asked, event_asked, time_asked
 
 # TODO : fix the convert asked to also use calender_type passed from export_date function
-convert_asked = read_dict("dictionary/convert_asked.dict")
-week_days_asked = read_dict("dictionary/week_days_asked.list")
-week_days = read_dict("dictionary/week_days.dict")
-event_asked = read_dict("dictionary/event_asked.list")
-time_asked = read_dict("dictionary/time_asked.list")
-
 
 class Calender:
     def __init__(self):

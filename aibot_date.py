@@ -3,37 +3,20 @@
 import ast
 import numpy as np
 import pandas as pd
-import hazm
 from hijri_converter import convert
 import re
 import datetime
 from hazm import word_tokenize
-from aibot_utils import cleaning, read_dict
+from aibot_utils import cleaning
 import os
+from vocab import perstr_to_num, num_to_perstr, miladimonthes, shamsimonthes, qamariMonthes, tr_engnum_arabicnum, event_literals, after_event
+from vocab import tr_arabicnum_engnum, year_literals, day_literals, week_literals, weeks_day_dict, month_literals, calender_type_dict
 
 abs_path = os.path.dirname(os.path.abspath(__file__))
 
 
 perAnd = " و "
-perstr_to_num = read_dict("dictionary/perstr_to_num.dict")
-num_to_perstr = read_dict("dictionary/num_to_perstr.dict")
-
-miladimonthes = read_dict("dictionary/miladimonthes.dict")
-shamsimonthes = read_dict("dictionary/shamsimonthes.dict")
-qamariMonthes = read_dict("dictionary/qamariMonthes.dict")
-
-tr_engnum_arabicnum = read_dict("dictionary/tr_engnum_arabicnum.dict")
-tr_arabicnum_engnum = read_dict("dictionary/tr_arabicnum_engnum.dict")
-year_literals = read_dict("dictionary/year_literals.dict")
-day_literals = read_dict("dictionary/day_literals.dict")
-week_literals = read_dict("dictionary/week_literals.dict")
-weeks_day_dict = read_dict("dictionary/weeks_day_dict.dict")
-month_literals = read_dict("dictionary/month_literals.dict")
-calender_type_dict = read_dict("dictionary/calender_type_dict.dict")
-week_days_asked = read_dict("dictionary/week_days_asked.list")
 df_event = pd.read_csv(os.path.join(abs_path, "database/event_data_full.csv"))
-event_literals = read_dict("dictionary/event_literals.list")
-after_event = read_dict("dictionary/after_event.list")
 
 
 def tr_isoweek_toperweekday(n): return n - 5 if n >= 5 else n + 2

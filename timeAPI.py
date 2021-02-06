@@ -5,17 +5,15 @@ import pandas as pd
 import numpy as np
 import re
 
-from aibot_utils import location_handler, read_dict
+from aibot_utils import location_handler
 from aibot_time import export_time
 from aibot_date import export_date, gregorian_to_jalali, format_jalali_date
-
+from vocab import hours_left_asked, hours_difference_asked
 from weatherAPI import Weather
 import os
 
 abs_path = os.path.dirname(os.path.abspath(__file__))
 
-hours_left_asked = read_dict("dictionary/hours_left_asked.list")
-hours_difference_asked = read_dict("dictionary/hours_difference_asked.list")
 
 class Time:
     def __init__(self):

@@ -6,8 +6,8 @@ import pandas as pd
 import datetime
 from aibot_date import export_date, gregorian_to_jalali, format_jalali_date
 from aibot_time import export_time
-from aibot_utils import read_dict
 from adhanAPI import Adhan
+from vocab import weather_description_asked, weather_temperature_asked, tr_weather_description, day_asked, time_asked
 
 weather_logical1 = {"سردترین": np.argmin, "سرد ترین": np.argmin, "سرد‌ترین": np.argmin, "گرم ترین": np.argmax, "گرمترین": np.argmax,
                     "گرم‌ترین": np.argmax, "میانگین دما": np.mean, "اختلاف دما": np.diff, "حداقل دما": np.min, "حداکثر دما": np.argmax, "بیشترین": np.argmax,
@@ -17,17 +17,7 @@ weather_logical2 = {"سردترین": np.min, "سرد ترین": np.min, "سرد
                     "گرم‌ترین": np.max, "میانگین دما": np.mean, "اختلاف دما": np.diff, "حداقل دما": np.min, "حداکثر دما": np.max, "بیشترین": np.max,
                     "بیشینه": np.max, "کمینه": np.min, "کمترین": np.min, "کم‌ترین": np.min, "سردتر": np.min, "گرم‌تر": np.max, "گرمتر": np.max, "اختلاف": np.diff}
 
-weather_description_asked = read_dict(
-    "dictionary/weather_description_asked.list")
-weather_temperature_asked = read_dict(
-    "dictionary/weather_temperature_asked.list")
-tr_weather_description = read_dict("dictionary/tr_weather_description.dict")
-day_asked = read_dict("dictionary/day_asked.list")
-time_asked = read_dict("dictionary/time_asked.list")
-
 # Class to handle weather api
-
-
 class Weather:
     def __init__(self):
         self.appid = "ee41144a3fc05599947c9ffe87e12bd4"

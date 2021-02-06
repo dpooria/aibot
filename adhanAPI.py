@@ -7,11 +7,8 @@ import numpy as np
 import pandas as pd
 
 from aibot_date import export_date, format_jalali_date, gregorian_to_jalali
-from aibot_utils import location_handler, read_dict
-
-tr_adhan_names = read_dict("dictionary/tr_adhan_names.dict")
-logical_question = read_dict("dictionary/logical_question.list")
-hours_left_asked = read_dict("dictionary/hours_left_asked.list")
+from aibot_utils import location_handler
+from vocab import hours_left_asked, logical_question, tr_adhan_names
 
 
 def get_city_info(cityName):

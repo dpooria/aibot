@@ -3,12 +3,9 @@ import datetime
 import re
 from aibot_date import convertStr2num, perstr_to_num
 import numpy as np
-from aibot_utils import cleaning, read_dict
+from aibot_utils import cleaning
 from hazm import word_tokenize
-
-am_pm_dict = read_dict("dictionary/am_pm_dict.dict")
-time_literals = read_dict("dictionary/time_literals.dict")
-minute_literals = read_dict("dictionary/minute_literals.dict")
+from vocab import am_pm_dict, time_literals, minute_literals
 
 
 def fix_hour_ampm(st, hour):

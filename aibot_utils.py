@@ -8,16 +8,9 @@ import tensorflow as tf
 import pandas as pd
 import os
 import requests
-
+from vocab import loc_literals
 
 abs_path = os.path.dirname(os.path.abspath(__file__))
-
-
-def read_dict(file_path):
-    with open(file_path, "r") as f_dict:
-        st = f_dict.readlines()[0]
-        new_dict = ast.literal_eval(st)
-    return new_dict
 
 
 def cleaning(text):
@@ -111,8 +104,6 @@ def nerQuestion(model, tokenizer, config, text):
 
 df_capitals = pd.read_csv(os.path.join(abs_path, "database/capitals.csv"))
 df_province = pd.read_csv(os.path.join(abs_path, "database/provinces.csv"))
-
-loc_literals = read_dict("dictionary/loc_literals.list")
 
 
 def get_city_info(cityName):
