@@ -19,6 +19,9 @@ import logging
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler
 from aibot import BOT
+import pandas as pd
+from aibot_utils import nerQuestion
+from aibot_utils import cleaning
 
 
 type_dict = {"-1": "پرسش خارج از توان",
@@ -44,7 +47,7 @@ logger = logging.getLogger(__name__)
 def start(update, context):
     """Send a message when the command /start is issued."""
     update.message.reply_text(""" سلام. ممنون از شما که وقت میزارید و در تست این ربات به ما کمک می‌کنید!
-     سوال های شما باید از چهار نوع 
+     سوال های شما باید از چهار نوع
      آب و هوا
      اوقات شرعی
      ساعت
@@ -78,13 +81,20 @@ def echo(update, context):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     update.message.reply_text(res_str, reply_markup=reply_markup)
-    with open("collect/userID{}Question{}.txt".format(update.message.chat.username, res["result"]), "a") as f_res:
+    file_name = "userID{}messageID{}".format(
+        update.message.chat.username, update.message.chat.id)
+    with open("collect/{}.txt".format(file_name), "a") as f_res:
         print(update.message.text, file=f_res)
         print("\n", file=f_res)
         print(res_str, file=f_res)
         print("\n", file=f_res)
         print(res, file=f_res)
         print("\n\n\n", file=f_res)
+    question = cleaning(update.message.text)
+    t, l = nerQuestion(bot.ner_model, bot.ner_tokenizer,
+                       bot.ner_config, question)
+    pd.DataFrame({"tokens": t, "labels": l}).to_csv(
+        "ner_labelling/" + file_name + ".csv")
 
 
 def help(update, context):
@@ -98,7 +108,7 @@ def help(update, context):
         -امروز تبریز در چه ساعتی سردتر است 
         -اختلاف دمای تهران و اصفهان در موقع اذان ظهر چه قدر است؟
         *تقویم
-        -امروز چه مناسبتی وجود دارد.add_handler(CallbackQueryHandler(button))
+        -امروز چه مناسبتی وجود دارد
         -چهارشنبه هفته بعد چندم است
         -روز ۱۲-۱۰-۱۳۹۹ چند شنبه بود
         -عاشورای حسینی سال بعد چندم است
@@ -124,7 +134,8 @@ def button(update, context):
     if not query.data == "Null":
         with open("collect2/userID{}FeedBack{}.txt".format(query.id, query.data), "a") as ffeed:
             print(query.message, end="\n\n", file=ffeed)
-        keyboard = [[InlineKeyboardButton('ممنون از شما!', callback_data='Null')]]
+        keyboard = [[InlineKeyboardButton(
+            'ممنون از شما!', callback_data='Null')]]
         reply_markup = InlineKeyboardMarkup(keyboard)
         query.message.edit_reply_markup(reply_markup=reply_markup)
 

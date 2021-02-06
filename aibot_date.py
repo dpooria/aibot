@@ -10,7 +10,7 @@ from hazm import word_tokenize
 from aibot_utils import cleaning
 import os
 from vocab import perstr_to_num, num_to_perstr, miladimonthes, shamsimonthes, qamariMonthes, tr_engnum_arabicnum, event_literals, after_event
-from vocab import tr_arabicnum_engnum, year_literals, day_literals, week_literals, weeks_day_dict, month_literals, calender_type_dict
+from vocab import tr_arabicnum_engnum, year_literals, day_literals, week_literals, weeks_day_dict, month_literals, calender_type_dict, week_days_asked
 
 abs_path = os.path.dirname(os.path.abspath(__file__))
 
