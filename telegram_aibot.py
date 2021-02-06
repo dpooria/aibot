@@ -83,7 +83,7 @@ def echo(update, context):
     update.message.reply_text(res_str, reply_markup=reply_markup)
     file_name = "userID{}messageID{}".format(
         update.message.chat.username, update.message.chat.id)
-    with open("collect/{}.txt".format(file_name), "a") as f_res:
+    with open("collect/{}.txt".format(file_name), "w") as f_res:
         print(update.message.text, file=f_res)
         print("\n", file=f_res)
         print(res_str, file=f_res)
