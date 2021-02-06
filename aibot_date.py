@@ -474,6 +474,7 @@ def day_exporter(st, today):
 
     if d_d and not is_week_day_asked:
         week_val = weeks_day_dict[d_d[-1]]
+        print(d_d[-1])
         today_week = tr_isoweek_toperweekday(today.weekday())
         d_w = []
 
@@ -489,7 +490,7 @@ def day_exporter(st, today):
         else:
             day = today + \
                 datetime.timedelta(w_ * 7 - w_ * (today_week - week_val))
-
+        print(day)
         return day, True
 
     # try day literals
@@ -501,7 +502,7 @@ def day_exporter(st, today):
         val = day_literals[d_d[-1]]
         match_liter = st.find(d_d[-1])
         b_match_liter = st[:match_liter]
-        n = re.findall("\d+", b_match_liter)
+        n = re.findall("\d+.*{}".format(d_d[-1]), b_match_liter)
         if n:
             try:
                 day = datetime.timedelta(int(n[0]) * val) + today
@@ -654,8 +655,14 @@ def export_date_single(st_arr, today_list, calender_type_is_found, calender_type
             pass
     mtch = re.findall(" | ".join(miladimonthes.keys()), st)
     if not mtch:
-        mtch = re.findall("| ".join(miladimonthes.keys()), st)
+        #mtch = re.findall("| ".join(miladimonthes.keys()), st)
+        for s in miladimonthes.keys():
+            mtch = re.findall("\s{}$".format(s), st)
+            if mtch:
+                break
+
     if mtch:
+        print(mtch)
         month = miladimonthes[cleaning(mtch[0])]
         today = today_list[1]
         month_place = st_space.find(cleaning(mtch[0]))
@@ -668,8 +675,13 @@ def export_date_single(st_arr, today_list, calender_type_is_found, calender_type
             pass
     mtch = re.findall(" | ".join(qamariMonthes.keys()), st)
     if not mtch:
-        mtch = re.findall("| ".join(qamariMonthes.keys()), st)
+        #mtch = re.findall("| ".join(qamariMonthes.keys()), st)
+        for s in qamariMonthes.keys():
+            mtch = re.findall("\s{}$".format(s), st)
+            if mtch:
+                break
     if mtch:
+        print(mtch)
         month = qamariMonthes[cleaning(mtch[0])]
         today = today_list[2]
         month_place = st_space.find(cleaning(mtch[0]))
@@ -684,8 +696,9 @@ def export_date_single(st_arr, today_list, calender_type_is_found, calender_type
 
     # try day literals
     day, is_day_literal = day_exporter(st, today_list[1])
-
+    print(day, is_day_literal)
     if day and is_day_literal:
+        print("ok")
         d_ = day
         is_month_none = True
         is_year_none = True
