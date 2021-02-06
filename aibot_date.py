@@ -476,6 +476,7 @@ def day_exporter(st, today):
         week_val = weeks_day_dict[d_d[-1]]
         today_week = tr_isoweek_toperweekday(today.weekday())
         d_w = []
+
         for l in week_literals.keys():
             if l in st:
                 d_w.append(l)
@@ -580,7 +581,6 @@ def month_matched(st_space, month_place, today, calender_type=0):
 
 
 def export_date_single(st_arr, today_list, calender_type_is_found, calender_type):
-
     today = today_list[calender_type]
     is_day_none = False
     is_month_none = False
@@ -635,7 +635,11 @@ def export_date_single(st_arr, today_list, calender_type_is_found, calender_type
     # try monthes name
     mtch = re.findall(" | ".join(shamsimonthes.keys()), st)
     if not mtch:
-        mtch = re.findall("| ".join(shamsimonthes.keys()), st)
+        # mtch = re.findall("| ".join(shamsimonthes.keys()), st)
+        for s in shamsimonthes.keys():
+            mtch = re.findall("\s{}$".format(s), st)
+            if mtch:
+                break
     if mtch:
         month = shamsimonthes[cleaning(mtch[0])]
         today = today_list[0]
@@ -648,7 +652,6 @@ def export_date_single(st_arr, today_list, calender_type_is_found, calender_type
             return d_, (is_day_none, is_month_none, is_year_none)
         except Exception:
             pass
-
     mtch = re.findall(" | ".join(miladimonthes.keys()), st)
     if not mtch:
         mtch = re.findall("| ".join(miladimonthes.keys()), st)
@@ -663,7 +666,6 @@ def export_date_single(st_arr, today_list, calender_type_is_found, calender_type
             return d_, (is_day_none, is_month_none, is_year_none)
         except Exception:
             pass
-
     mtch = re.findall(" | ".join(qamariMonthes.keys()), st)
     if not mtch:
         mtch = re.findall("| ".join(qamariMonthes.keys()), st)
@@ -682,6 +684,7 @@ def export_date_single(st_arr, today_list, calender_type_is_found, calender_type
 
     # try day literals
     day, is_day_literal = day_exporter(st, today_list[1])
+
     if day and is_day_literal:
         d_ = day
         is_month_none = True
