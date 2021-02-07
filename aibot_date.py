@@ -499,15 +499,17 @@ def day_exporter(st, today):
     if d_d:
         val = day_literals[d_d[-1]]
         match_liter = st.find(d_d[-1])
-        b_match_liter = st[:match_liter]
-        n = re.findall("\d+.*{}".format(d_d[-1]), b_match_liter)
+        b_match_liter = st[:match_liter + len(d_d[-1]) + 1]
+        n = re.findall("\d+\s+{}".format(d_d[-1]), b_match_liter)
         if n:
             try:
+                n = re.findall("\d+", n[0])
                 day = datetime.timedelta(int(n[0]) * val) + today
             except Exception:
                 day = datetime.timedelta(val) + today
         else:
             try:
+                # writed numbers
                 s = []
                 for w in word_tokenize(b_match_liter):
                     if w in perstr_to_num.keys():
