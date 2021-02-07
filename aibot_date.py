@@ -263,7 +263,7 @@ def check_event(question, tokens, labels, today_gregorian, today_hijri, today_ja
     if events.empty:
         return None, (True, True, True)
     year = year_exporter(
-        question, today_gregorian, calender_type=calender_type)
+        question, today_jalali, calender_type=calender_type)
     year_type = "j_d"
     if year is None:
         year = today_gregorian.year
@@ -433,6 +433,10 @@ def year_exporter(st, today, calender_type=0):
                 year = re.findall("^\d{2} ", st)
             if not year:
                 year = re.findall(" \d{2}$", st)
+            if not year:
+                year = re.findall(" \d{2}[؟|.]$", st)
+                if year:
+                    year = [year[0].replace("؟", "").replace(".", "")]
             if year and int(year[0]) > 31 and calender_type == 0:
                 year = int(year[0])
                 year += 1300
