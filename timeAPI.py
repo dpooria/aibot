@@ -162,7 +162,6 @@ class Time:
             return answer
         else:
             time_list = []
-            print(time_zone_list)
             for tz in time_zone_list:
                 time_zone = pytz.timezone(tz)
                 if len(time_iso) == 1:
@@ -179,6 +178,5 @@ class Time:
 
             if is_hours_difference_asked:
                 dt = abs(time_list[0] - time_list[-1])
-                print(time_list, dt)
                 answer["result"] = self.format_time_delta(dt)
             return answer

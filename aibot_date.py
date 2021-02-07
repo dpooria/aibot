@@ -474,7 +474,6 @@ def day_exporter(st, today):
 
     if d_d and not is_week_day_asked:
         week_val = weeks_day_dict[d_d[-1]]
-        print(d_d[-1])
         today_week = tr_isoweek_toperweekday(today.weekday())
         d_w = []
 
@@ -490,7 +489,6 @@ def day_exporter(st, today):
         else:
             day = today + \
                 datetime.timedelta(w_ * 7 - w_ * (today_week - week_val))
-        print(day)
         return day, True
 
     # try day literals
@@ -662,7 +660,6 @@ def export_date_single(st_arr, today_list, calender_type_is_found, calender_type
                 break
 
     if mtch:
-        print(mtch)
         month = miladimonthes[cleaning(mtch[0])]
         today = today_list[1]
         month_place = st_space.find(cleaning(mtch[0]))
@@ -681,7 +678,6 @@ def export_date_single(st_arr, today_list, calender_type_is_found, calender_type
             if mtch:
                 break
     if mtch:
-        print(mtch)
         month = qamariMonthes[cleaning(mtch[0])]
         today = today_list[2]
         month_place = st_space.find(cleaning(mtch[0]))
@@ -696,9 +692,7 @@ def export_date_single(st_arr, today_list, calender_type_is_found, calender_type
 
     # try day literals
     day, is_day_literal = day_exporter(st, today_list[1])
-    print(day, is_day_literal)
     if day and is_day_literal:
-        print("ok")
         d_ = day
         is_month_none = True
         is_year_none = True
