@@ -14,8 +14,6 @@ from vocab import (
     tr_weather_description,
     day_asked,
     time_asked,
-    weather_logical1,
-    weather_logical2,
     weather_logical,
     temp_asked)
 

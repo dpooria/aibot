@@ -90,11 +90,11 @@ def echo(update, context):
         print("\n", file=f_res)
         print(res, file=f_res)
         print("\n\n\n", file=f_res)
-    question = cleaning(update.message.text)
-    t, l = nerQuestion(bot.ner_model, bot.ner_tokenizer,
-                       bot.ner_config, question)
-    pd.DataFrame({"tokens": t, "labels": l}).to_csv(
-        "ner_labelling/" + file_name + ".csv")
+    # question = cleaning(update.message.text)
+    # t, l = nerQuestion(bot.ner_model, bot.ner_tokenizer,
+    #                    bot.ner_config, question)
+    # pd.DataFrame({"tokens": t, "labels": l}).to_csv(
+    #     "ner_labelling/" + file_name + ".csv")
 
 
 def help(update, context):

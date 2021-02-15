@@ -4,13 +4,13 @@ import numpy as np
 
 USER_CITY = "تهران"
 
-weather_logical1 = {"سردترین": np.argmin, "سرد ترین": np.argmin, "سرد‌ترین": np.argmin, "گرم ترین": np.argmax, "گرمترین": np.argmax,
-                    "گرم‌ترین": np.argmax, "میانگین دما": np.mean, "اختلاف دما": np.diff, "حداقل دما": np.min, "حداکثر دما": np.argmax, "بیشترین": np.argmax,
-                    "بیشینه": np.argmax, "کمینه": np.argmin, "کمترین": np.argmin, "کم‌ترین": np.argmin, "سردتر": np.argmin, "گرم‌تر": np.argmax, "گرمتر": np.argmax, "اختلاف": np.diff, "بیشتر": np.max, "کمتر": np.min, "میانگین": np.mean}
+# weather_logical1 = {"سردترین": np.argmin, "سرد ترین": np.argmin, "سرد‌ترین": np.argmin, "گرم ترین": np.argmax, "گرمترین": np.argmax,
+#                     "گرم‌ترین": np.argmax, "میانگین دما": np.mean, "اختلاف دما": np.diff, "حداقل دما": np.min, "حداکثر دما": np.argmax, "بیشترین": np.argmax,
+#                     "بیشینه": np.argmax, "کمینه": np.argmin, "کمترین": np.argmin, "کم‌ترین": np.argmin, "سردتر": np.argmin, "گرم‌تر": np.argmax, "گرمتر": np.argmax, "اختلاف": np.diff, "بیشتر": np.max, "کمتر": np.min, "میانگین": np.mean}
 
-weather_logical2 = {"سردترین": np.min, "سرد ترین": np.min, "سرد‌ترین": np.min, "گرم ترین": np.max, "گرمترین": np.max,
-                    "گرم‌ترین": np.max, "میانگین دما": np.mean, "اختلاف دما": np.diff, "حداقل دما": np.min, "حداکثر دما": np.max, "بیشترین": np.max,
-                    "بیشینه": np.max, "کمینه": np.min, "کمترین": np.min, "کم‌ترین": np.min, "سردتر": np.min, "گرم‌تر": np.max, "گرمتر": np.max, "اختلاف": np.diff, "بیشتر": np.max, "کمتر": np.min, "میانگین": np.mean}
+# weather_logical2 = {"سردترین": np.min, "سرد ترین": np.min, "سرد‌ترین": np.min, "گرم ترین": np.max, "گرمترین": np.max,
+#                     "گرم‌ترین": np.max, "میانگین دما": np.mean, "اختلاف دما": np.diff, "حداقل دما": np.min, "حداکثر دما": np.max, "بیشترین": np.max,
+#                     "بیشینه": np.max, "کمینه": np.min, "کمترین": np.min, "کم‌ترین": np.min, "سردتر": np.min, "گرم‌تر": np.max, "گرمتر": np.max, "اختلاف": np.diff, "بیشتر": np.max, "کمتر": np.min, "میانگین": np.mean}
 
 weather_logical = {"سردترین": "amin_abs", "سرد ترین": "amin_abs", "سردتر": "amin", "سرد‌تر": "amin", "کمترین": "amin_abs", "کم‌ترین": "amin_abs",
                    "کم تر": "amin", "کم‌تر": "amin", "سرد تر": "amin", "کمتر": "amin", "کمینه": "amin_abs", "حداقل": "amin_abs",
