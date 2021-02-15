@@ -226,7 +226,6 @@ def exact_check_event(text, today_gregorian, today_hijri, today_jalali, calender
         for i, e in enumerate(df_event["event"]):
             if st in e:
                 event_list.append(df_event.iloc[i])
-
     events = pd.DataFrame(event_list)
     if events.empty:
         return None, (True, True, True)
@@ -619,6 +618,35 @@ def day_exporter(st, today):
             d_d.append(l)
     if d_d:
         val = day_literals[d_d[-1]]
+        if isinstance(val, complex):
+            match_liter = st.find(d_d[-1])
+            b_match_liter = st[:match_liter + len(d_d[-1]) + 1]
+            n = re.findall("\d+\s+{}".format(d_d[-1]), b_match_liter)
+            if n:
+                try:
+                    n = re.findall("\d+", n[0])
+                    day = []
+                    for i in range(1, n + 1):
+                        day.append(today + datetime.timedelta(i))
+                except Exception:
+                    day = datetime.timedelta(val) + today
+            else:
+                try:
+                    # writed numbers
+                    s = []
+                    for w in word_tokenize(b_match_liter):
+                        if w in perstr_to_num.keys():
+                            s.append(w)
+                    if s:
+                        n = convertStr2num(" ".join(s))
+                        day = []
+                        for i in range(1, n + 1):
+                            day.append(today + datetime.timedelta(i))
+                    else:
+                        day = today + datetime.timedelta(val)
+                except Exception:
+                    day = today + datetime.datetime.timedelta(val)
+            return day, True
         match_liter = st.find(d_d[-1])
         b_match_liter = st[:match_liter + len(d_d[-1]) + 1]
         n = re.findall("\d+\s+{}".format(d_d[-1]), b_match_liter)
@@ -776,7 +804,7 @@ def export_date_single(st_arr, today_list, calender_type_is_found, calender_type
             pass
     mtch = re.findall(" | ".join(miladimonthes.keys()), st)
     if not mtch:
-        #mtch = re.findall("| ".join(miladimonthes.keys()), st)
+        # mtch = re.findall("| ".join(miladimonthes.keys()), st)
         for s in miladimonthes.keys():
             mtch = re.findall("\s{}$".format(s), st)
             if mtch:
@@ -795,7 +823,7 @@ def export_date_single(st_arr, today_list, calender_type_is_found, calender_type
             pass
     mtch = re.findall(" | ".join(qamariMonthes.keys()), st)
     if not mtch:
-        #mtch = re.findall("| ".join(qamariMonthes.keys()), st)
+        # mtch = re.findall("| ".join(qamariMonthes.keys()), st)
         for s in qamariMonthes.keys():
             mtch = re.findall("\s{}$".format(s), st)
             if mtch:
@@ -882,6 +910,10 @@ def export_date(question, tokens, labels):
         d_single = export_date_single(
             st_arr, today_list, calender_type_is_found, calender_type)
         if d_single[0] != None:
+            if isinstance(d_single[0], list):
+                dat = []
+                for eds in d_single[0]:
+                    dat.append((eds[0], d_single[1]))
             return [d_single]
         else:
             return [check_event(question, tokens, labels, today_gregorian, today_hijri, today_jalali, calender_type)]
@@ -899,8 +931,13 @@ def export_date(question, tokens, labels):
             for t in np.r_[b_date[i], ida]:
                 st_arr.append(tokens[int(t)])
             texts_date.append(" ".join(st_arr))
-            d_.append(export_date_single(st_arr, today_list,
-                                         calender_type_is_found, calender_type))
+            eds = export_date_single(st_arr, today_list,
+                                     calender_type_is_found, calender_type)
+            if isinstance(eds[0], list):
+                for e in eds:
+                    d_.append((eds[0], eds[1]))
+            else:
+                d_.append(eds)
         for i, d in enumerate(d_):
             if d[0] == None:
                 d_[i] = exact_check_event(texts_date[i], today_gregorian,
@@ -925,7 +962,12 @@ def export_date(question, tokens, labels):
 
         d_ = export_date_single(
             st_arr, today_list, calender_type_is_found, calender_type)
-
+        print(d_)
+        if isinstance(d_[0], list):
+            dates = []
+            for dat in d_[0]:
+                dates.append((dat, d_[1]))
+            return dates
         if d_[0] == None or d_[1][0] or d_[1][1] or d_[1][2]:
             d_ = exact_check_event(" ".join(st_arr), today_gregorian,
                                    today_hijri, today_jalali, calender_type)
