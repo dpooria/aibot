@@ -19,9 +19,6 @@ import logging
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler
 from aibot import BOT
-import pandas as pd
-from aibot_utils import nerQuestion
-from aibot_utils import cleaning
 
 
 type_dict = {"-1": "پرسش خارج از توان",
