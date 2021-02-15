@@ -7,21 +7,8 @@ import numpy as np
 import pandas as pd
 
 from aibot_date import export_date, format_jalali_date, gregorian_to_jalali
-from aibot_utils import location_handler
+from aibot_utils import location_handler, get_city_info, unique_without_sort
 from vocab import hours_left_asked, logical_question, tr_adhan_names
-
-
-def get_city_info(cityName):
-    openweatherapi_5dayforecast_url = "http://api.openweathermap.org/data/2.5/forecast?q={}&APPID=ee41144a3fc05599947c9ffe87e12bd4&units=metric&lang=fa&cnt=1"
-    try:
-        data = requests.get(
-            openweatherapi_5dayforecast_url.format(cityName)).json()
-    except:
-        return None
-    if data["cod"] == "200":
-        return data["city"]
-    else:
-        return None
 
 
 class Adhan:
@@ -123,7 +110,7 @@ class Adhan:
     def get_answer(self, question, tokens, labels):
         answer = {'type': '2', 'city': [], 'date': [],
                   'time': [], 'religious_time': [], 'calendar_type': [], 'event': [], 'api_url': [''], 'result': ''}
-        location = list(np.unique(location_handler(question, tokens, labels)))
+        location = unique_without_sort(location_handler(question, tokens, labels))
         answer["city"] = location
         date_list = []
         date_list_jalali = []
@@ -146,7 +133,7 @@ class Adhan:
             d_n = 1
             no_date = True
 
-        date_list = list(np.unique(date_list))
+        date_list = unique_without_sort(date_list)
         d_n = len(date_list)
         date_list_jalali = []
         for d in date_list:

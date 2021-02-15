@@ -64,15 +64,21 @@ class Time:
         answer = {'type': '3', 'city': [], 'date': [],
                   'time': [], 'religious_time': [], 'calendar_type': [], 'event': [], 'api_url': [''], 'result': ''}
 
-        exporttime = export_time(question, tokens, labels)
-        time_list = []
-        time_iso = []
         date = datetime.datetime.today().date()
         exportd = export_date(question, tokens, labels)
         if exportd[0][0] != None:
             date = exportd[0][0].date()
             answer["date"] = [format_jalali_date(
                 gregorian_to_jalali(date.year, date.month, date.day))]
+
+        time_list = []
+        time_iso = []
+        exporttime, is_adhan, adhan_url, adhan_names = export_time(
+            question, tokens, labels)
+        if is_adhan:
+            answer["religious_time"] = adhan_names
+            answer["api_url"].append(adhan_url)
+
         for t in exporttime:
             if t != None:
                 time_list.append(t.strftime("%H:%M"))

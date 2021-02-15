@@ -1,5 +1,4 @@
 
-import ast
 import hazm
 import re
 from cleantext import clean
@@ -8,7 +7,7 @@ import tensorflow as tf
 import pandas as pd
 import os
 import requests
-from vocab import loc_literals
+from vocab import USER_CITY, loc_literals
 
 abs_path = os.path.dirname(os.path.abspath(__file__))
 
@@ -79,7 +78,7 @@ def pad(v, MAX_LEN=128):
     return np.pad(v, pad_width=(0, MAX_LEN - len(v)))
 
 
-def classifyQuestion(model, tokenizer, question):
+def classify_question(model, tokenizer, question):
     question = cleaning(question)
     token = tokenizer.tokenize(question)
     token_enc = tokenizer.encode_plus(token)
@@ -92,14 +91,19 @@ def classifyQuestion(model, tokenizer, question):
     return ypred
 
 
-def nerQuestion(model, tokenizer, config, text):
-    tokens = tokenizer.tokenize(tokenizer.decode(tokenizer.encode(text)))
-    inputs = tokenizer.encode(text, return_tensors="tf")
-    outputs = model(inputs)[0]
-    predictions = tf.argmax(outputs, axis=2)
-    labels = list(config.label2id.keys())
-    p = [labels[pr] for pr in predictions[0].numpy()]
-    return tokens, np.array(p)
+def ner_question(model, tokenizer, config, sentence):
+    MAX_LEN = 50
+    id2label = config.id2label
+    token_enc = tokenizer(sentence)
+    def pad(v): return np.pad(v, pad_width=(0, MAX_LEN - len(v)))
+    xdata = [np.array([pad(token_enc["input_ids"])]), np.array([pad(token_enc["attention_mask"])]),
+             np.array([pad(token_enc["token_type_ids"])])]
+    p = model.predict(xdata)
+    ypred = p[0].argmax(axis=-1)[0]
+    labels = [id2label[pr] for pr in ypred]
+    tokens = tokenizer.tokenize(sentence, add_special_tokens=True)
+
+    return tokens, np.array(labels[:len(tokens)])
 
 
 df_capitals = pd.read_csv(os.path.join(abs_path, "database/capitals.csv"))
@@ -122,9 +126,10 @@ def get_city_info(cityName):
 def location_fix(question, location):
     location_fixed = []
     for l in location:
-        if (l in df_capitals["country"].to_numpy()) and ("پایتخت" in question):
+        lc = cleaning(re.sub("پایتخت", "", l))
+        if (lc in df_capitals["country"].to_numpy()) and ("پایتخت" in question):
             location_fixed.append(
-                df_capitals["capital"].loc[df_capitals["country"] == l].to_numpy()[0])
+                df_capitals["capital"].loc[df_capitals["country"] == lc].to_numpy()[0])
         elif (cleaning(l.replace("استان", "")) in df_province["name"].to_numpy()) and ("مرکز" in question):
             location_fixed.append(
                 df_province["center"].loc[df_province["name"] == cleaning(l.replace("استان", ""))].to_numpy()[0])
@@ -137,8 +142,8 @@ def location_fix(question, location):
 
 
 def location_(question, tokens, labels):
-    bloc = np.array(tokens)[labels == "B-location"]
-    iloc = np.array(tokens)[labels == "I-location"]
+    bloc = np.array(tokens)[labels == "B_LOC"]
+    iloc = np.array(tokens)[labels == "I_LOC"]
     if len(bloc) == 0 and len(iloc) == 0:
         return []
     if len(bloc) == 0 and len(iloc) != 0:
@@ -150,8 +155,8 @@ def location_(question, tokens, labels):
     if len(iloc) == 0:
         return location_fix(question, bloc)
     else:
-        bloc_loc = np.where(labels == "B-location")[0]
-        iloc_loc = np.where(labels == "I-location")[0]
+        bloc_loc = np.where(labels == "B_LOC")[0]
+        iloc_loc = np.where(labels == "I_LOC")[0]
         locs = []
         new_bloc_loc = []
         new_bloc = []
@@ -162,7 +167,6 @@ def location_(question, tokens, labels):
             else:
                 new_bloc_loc.append(iloc_loc[iloc_loc > b][0])
                 new_bloc.append(iloc[iloc_loc > b][0])
-
         bloc_loc = np.array(new_bloc_loc)
         bloc = np.array(new_bloc)
         for i in range(len(bloc)):
@@ -190,8 +194,10 @@ def location_handler(question, tokens, labels):
                 problem = True
             problem_list.append([i, problem])
         w_t = np.array(hazm.word_tokenize(question))
-        bloc = np.where(labels == "B-location")[0] - 1
-        iloc = np.where(labels == "I-location")[0] - 1
+        # bloc = np.where(labels == "B-location")[0] - 1
+        # iloc = np.where(labels == "I-location")[0] - 1
+        bloc = np.where(labels == "B_LOC")[0] - 1
+        iloc = np.where(labels == "I_LOC")[0] - 1
         if len(bloc) >= len(problem_list):
             for i in range(len(problem_list)):
                 if problem_list[i][1]:
@@ -199,7 +205,37 @@ def location_handler(question, tokens, labels):
                         il = iloc[(iloc > bloc[i]) & (iloc < bloc[i+1])]
                     else:
                         il = iloc[iloc > bloc[i]]
-                    loc[i] = location_fix(
+                    loc[problem_list[i][0]] = location_fix(
                         question, [" ".join(w_t[np.r_[bloc[i], il]])])[0]
-                    # print(w_t[np.r_[bloc[i], il]])
+    else:
+        loc = [USER_CITY]
     return loc
+
+
+def mix_tdl(times, dates, locations):
+    t = len(times)
+    d = len(dates)
+    l = len(locations)
+    if t == 1 and l == 1 and d == 1:
+        return [[times[-1], dates[-1], locations[-1]]]
+    elif t == 2 and l == 1 and d == 1:
+        return [[times[0], dates[-1], locations[-1]], [times[-1], dates[-1], locations[-1]]]
+    elif t == 1 and l == 1 and d == 2:
+        return [[times[-1], dates[0], locations[-1]], [times[-1], dates[-1], locations[-1]]]
+    elif t == 1 and l == 2 and d == 1:
+        return [[times[-1], dates[-1], locations[0]], [times[-1], dates[-1], locations[-1]]]
+    elif t == 2 and l == 1 and d == 2:
+        return [[times[0], dates[0], locations[-1]], [times[-1], dates[-1], locations[-1]]]
+    elif t == 2 and l == 2 and d == 1:
+        return [[times[0], dates[-1], locations[0]], [times[-1], dates[-1], locations[-1]]]
+    elif t == 1 and l == 2 and d == 2:
+        return [[times[-1], dates[0], locations[0]], [times[-1], dates[-1], locations[-1]]]
+    elif t == 2 and l == 2 and d == 2:
+        return [[times[0], dates[0], locations[0]], [times[-1], dates[-1], locations[-1]]]
+    else:
+        return None
+
+
+def unique_without_sort(arr):
+    indexes = np.unique(arr, return_index=True)[1]
+    return [arr[index] for index in sorted(indexes)]

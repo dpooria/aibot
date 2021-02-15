@@ -1,4 +1,5 @@
 
+from aibot_utils import unique_without_sort
 import numpy as np
 import datetime
 from hijri_converter import convert
@@ -43,7 +44,7 @@ class Calender:
             date_list = [today]
             d_n = 1
             no_date = True
-        date_list = list(np.unique(date_list))
+        date_list = unique_without_sort(date_list)
         d_n = len(date_list)
         date_list_jalali = []
         for d in date_list:
@@ -52,12 +53,7 @@ class Calender:
 
         answer["date"] = date_list_jalali
         answer["result"] = date_list_jalali[0]
-        event_list = list(np.unique(list(np.array(tokens)[np.where(
-            (labels == "B-event") | (labels == "I-event")[0])])))
-        if event_list:
-            event_list = np.r_[event_list, events]
-        else:
-            event_list = events
+        event_list = events
         answer["event"] = list(event_list)
         convert_list = []
         is_weeks_day_asked = False

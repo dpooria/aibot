@@ -9,8 +9,24 @@ import datetime
 from hazm import word_tokenize
 from aibot_utils import cleaning
 import os
-from vocab import perstr_to_num, num_to_perstr, miladimonthes, shamsimonthes, qamariMonthes, tr_engnum_arabicnum, event_literals, after_event
-from vocab import tr_arabicnum_engnum, year_literals, day_literals, week_literals, weeks_day_dict, month_literals, calender_type_dict, week_days_asked
+from vocab import (
+    perstr_to_num,
+    num_to_perstr,
+    miladimonthes,
+    shamsimonthes,
+    qamariMonthes,
+    tr_engnum_arabicnum,
+    event_literals,
+    after_event,
+    tr_arabicnum_engnum,
+    year_literals,
+    day_literals,
+    week_literals,
+    weeks_day_dict,
+    month_literals,
+    calender_type_dict,
+    week_days_asked,
+    wrong_date)
 
 abs_path = os.path.dirname(os.path.abspath(__file__))
 
@@ -194,12 +210,129 @@ def jalali_to_gregorian(jy, jm, jd):
     return [gy, gm, gd]
 
 
+def exact_check_event(text, today_gregorian, today_hijri, today_jalali, calender_type=0):
+    event_list = []
+    for i, e in enumerate(df_event["event"]):
+        if e in text:
+            event_list.append(df_event.iloc[i])
+    if not event_list and not (text in wrong_date):
+        event_tokens = word_tokenize(text)
+        n_t = []
+        for e in event_tokens:
+            if not e in after_event:
+                n_t.append(e)
+        st = " ".join(n_t)
+        st = cleaning(re.sub("\d+", "", st))
+        for i, e in enumerate(df_event["event"]):
+            if st in e:
+                event_list.append(df_event.iloc[i])
+
+    events = pd.DataFrame(event_list)
+    if events.empty:
+        return None, (True, True, True)
+    year = year_exporter(
+        text, today_jalali, calender_type=calender_type)
+    year_type = "j_d"
+    if year is None:
+        year = today_gregorian.year
+        year_type = "g_d"
+    elif year > 1420 and year < 1600:
+        year_type = "h_d"
+    elif year > 1600:
+        year_type = "g_d"
+    event_date = []
+    for i in range(len(events)):
+        if year_type == "g_d":
+            a = re.findall("{}-\d+-\d+".format(year), events["g_d"].iloc[i])
+        else:
+            a = re.findall("[(]{}, \d+, \d+[)]".format(year),
+                           events[year_type].iloc[i])
+        if a:
+            event_date.append(events.iloc[i])
+
+    if event_date:
+        d = datetime.datetime.fromisoformat(event_date[-1]["g_d"])
+        return d, (False, False, event_date[-1]["event"])
+
+    else:
+        ev = events.iloc[-1]
+        if ev["calender_type"] == "g":
+            d = datetime.datetime.fromisoformat(ev["g_d"])
+            if year_type == "j_d":
+                year_of_that = gregorian_to_jalali(d.year, d.month, d.day)[0]
+                dy = year_of_that - year
+                d = datetime.datetime(d.year - dy, d.month, d.day)
+            elif year_type == "h_d":
+                year_of_that = convert.Gregorian(
+                    d.year, d.month, d.day).to_hijri().year
+                dy = year_of_that - year
+                d = datetime.datetime(d.year - dy, d.month, d.day)
+            else:
+                d = datetime.datetime(year, d.month, d.day)
+
+        elif ev["calender_type"] == "j":
+            d = ast.literal_eval(ev["j_d"])
+            if year_type == "j_d":
+                d = jalali_to_gregorian(year, d[1], d[2])
+                d = datetime.datetime(d[0], d[1], d[2])
+            elif year_type == "h_d":
+                m_d = jalali_to_gregorian(d[0], d[1], d[2])
+                year_of_that = convert.Gregorian(
+                    m_d[0], m_d[1], m_d[2]).to_hijri()
+                dy = year_of_that - year
+                j_d = (d[0] - dy, d[1], d[2])
+                d = jalali_to_gregorian(j_d[0], j_d[1], j_d[2])
+                d = datetime.datetime(d[0], d[1], d[2])
+            else:
+                m_d = jalali_to_gregorian(d[0], d[1], d[2])[0]
+                dy = m_d[0] - year
+                m_d = jalali_to_gregorian(d[0] - dy, d[1], d[2])
+                d = datetime.datetime(m_d[0], m_d[1], m_d[2])
+
+        else:  # calender_type == "h"
+            d = ast.literal_eval(ev["h_d"])
+            m_d = convert.Hijri(d[0], d[1], d[2]).to_gregorian()
+            if year_type == "j_d":
+                year_of_that = gregorian_to_jalali(
+                    m_d.year, m_d.month, m_d.day)[0]
+                dy = year_of_that - year
+                y = convert.Gregorian(
+                    m_d.year - dy, m_d.month, m_d.day).to_hijri().year
+                m_d = convert.Hijri(y, d[1], d[2]).to_gregorian()
+                d = datetime.datetime(m_d.year, m_d.month, m_d.day)
+            elif year_type == "g_d":
+                dy = m_d.year - year
+                m_d = convert.Hijri(d[0] - dy, d[1], d[2]).to_gregorian()
+                d = datetime.datetime(m_d.year, m_d.month, m_d.day)
+            else:  # year_type == "h_d"
+                h_d = (year, d[1], d[2])
+                m_d = convert.Hijri(h_d[0], h_d[1], h_d[2]).to_gregorian()
+                d = datetime.datetime(m_d.year, m_d.month, m_d.day)
+        return d, (False, False, ev["event"])
+
+
 def event_exporter(question, tokens, labels):
     event_list = []
     # try matching exactly the names of the events:
     for i, e in enumerate(df_event["event"]):
         if e in question:
             event_list.append(df_event.iloc[i])
+    if not event_list:
+        event_tokens = list(np.array(tokens)[np.where(
+            (labels == "B_DAT") | (labels == "I_DAT"))])
+        if len(event_tokens) > 0:
+            if len(event_tokens) > 1:
+                n_t = []
+                for e in event_tokens:
+                    if not e in after_event:
+                        n_t.append(e)
+                st = " ".join(n_t)
+                st = cleaning(re.sub("\d+", "", st))
+            else:
+                st = event_tokens[0]
+            for i, e in enumerate(df_event["event"]):
+                if st in e:
+                    event_list.append(df_event.iloc[i])
     if not event_list:
         # try finding event_literals
         for el in event_literals:
@@ -221,22 +354,6 @@ def event_exporter(question, tokens, labels):
                 el_q = cleaning(el_q.replace("است", ""))
                 for i, e in enumerate(df_event["event"]):
                     if (el_q in e) or (e in el_q):
-                        event_list.append(df_event.iloc[i])
-    if not event_list:
-        event_tokens = list(np.array(tokens)[np.where(
-            (labels == "B-event") | (labels == "I-event"))])
-        person_tokens = list(np.array(tokens)[np.where(
-            (labels == "B-person") | (labels == "I-person"))])
-        organization_tokens = list(np.array(tokens)[np.where(
-            (labels == "B-organization") | (labels == "I-organization"))])
-        for t in [event_tokens, person_tokens, organization_tokens]:
-            if len(t) > 0:
-                if len(t) > 1:
-                    st = " ".join(t)
-                else:
-                    st = t[0]
-                for i, e in enumerate(df_event["event"]):
-                    if st in e:
                         event_list.append(df_event.iloc[i])
     # let's once again search in the entire question
     if not event_list:
@@ -734,10 +851,9 @@ def export_date_single(st_arr, today_list, calender_type_is_found, calender_type
 
 
 def export_date(question, tokens, labels):
-
     labels = np.array(labels)
-    b_date = np.where(labels == "B-date")[0]
-    i_date = np.where(labels == "I-date")[0]
+    b_date = np.where(labels == "B_DAT")[0]
+    i_date = np.where(labels == "I_DAT")[0]
     # find calender type
     today_gregorian = datetime.datetime.today()
     today_jalali = gregorian_to_jalali(
@@ -772,6 +888,7 @@ def export_date(question, tokens, labels):
     elif n >= 2:
         d_ = []
         false_ner = False
+        texts_date = []
         for i in range(n):
             st_arr = []
             if i < n - 1:
@@ -781,20 +898,25 @@ def export_date(question, tokens, labels):
                 ida = i_date[np.where(i_date > b_date[i])]
             for t in np.r_[b_date[i], ida]:
                 st_arr.append(tokens[int(t)])
+            texts_date.append(" ".join(st_arr))
             d_.append(export_date_single(st_arr, today_list,
                                          calender_type_is_found, calender_type))
         for i, d in enumerate(d_):
             if d[0] == None:
-                d_[i] = export_date_single(
-                    tokens[b_date[i]:], today_list, calender_type_is_found, calender_type)
-            if d_[i][0] == None:
-                d_[i] = check_event(question, tokens, labels, today_gregorian,
-                                    today_hijri, today_jalali, calender_type)
-            if d_[i][0] == None:
-                false_ner = True
-        if false_ner and n == 2:
-            d_ = [export_date_single(word_tokenize(
-                question), today_list, calender_type_is_found, calender_type)]
+                d_[i] = exact_check_event(texts_date[i], today_gregorian,
+                                          today_hijri, today_jalali, calender_type)
+            # if d_[i] == None:
+            #     d_[i] = check_event(question, tokens, labels, today_gregorian,
+            #                         today_hijri, today_jalali, calender_type)
+            # if d_[i][0] == None:
+            #     d_[i] = export_date_single(
+            #         tokens[b_date[i]:], today_list, calender_type_is_found, calender_type)
+
+        #     if d_[i][0] == None:
+        #         false_ner = True
+        # if false_ner and n == 2:
+        #     d_ = [export_date_single(word_tokenize(
+        #         question), today_list, calender_type_is_found, calender_type)]
         return d_
     else:
         st_arr = []
@@ -803,6 +925,10 @@ def export_date(question, tokens, labels):
 
         d_ = export_date_single(
             st_arr, today_list, calender_type_is_found, calender_type)
+
+        if d_[0] == None or d_[1][0] or d_[1][1] or d_[1][2]:
+            d_ = exact_check_event(" ".join(st_arr), today_gregorian,
+                                   today_hijri, today_jalali, calender_type)
 
         if d_[0] == None or d_[1][0] or d_[1][1] or d_[1][2]:
             d_ = export_date_single(word_tokenize(

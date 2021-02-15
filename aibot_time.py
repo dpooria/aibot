@@ -1,11 +1,15 @@
 
 import datetime
 import re
-from aibot_date import convertStr2num, perstr_to_num
+from aibot_date import convertStr2num, export_date
 import numpy as np
-from aibot_utils import cleaning
+from aibot_utils import cleaning, location_handler, mix_tdl
+from adhanAPI import Adhan
 from hazm import word_tokenize
-from vocab import am_pm_dict, time_literals, minute_literals
+from vocab import am_pm_dict, time_literals, minute_literals, perstr_to_num
+from copy import copy
+
+adhan = Adhan()
 
 
 def fix_hour_ampm(st, hour):
@@ -187,6 +191,76 @@ def hour_min_exporter(st):
     return None, None
 
 
+# check for adhan times
+def adhan_handler(time_list, tokens, labels, question):
+    res = []
+    url = []
+    if time_list == None or len(time_list) == 1:
+        adhan_names = adhan.export_adhan_names(question)
+        if adhan_names:
+            exportdat = export_date(question, tokens, labels)
+            date_list = []
+            for d in exportdat:
+                if d[0] != None:
+                    date_list.append(d[0])
+            if not date_list:
+                date_list.append(datetime.datetime.today())
+            locs = location_handler(question, tokens, labels)
+            mixture = mix_tdl(adhan_names, date_list, locs)
+            if mixture:
+                for m in mixture:
+                    t, u = adhan.get_city_adhan_time(m[2], m[1], m[0])
+                    res.append(t)
+                    url.append(u)
+            return res, url, adhan_names
+        else:
+            return None, None, None
+    else:
+        adhan_names = adhan.export_adhan_names(question)
+        # for t in time_list:
+        #     a = adhan.export_adhan_names(str(t))
+        #     if a:
+        #         adhan_names.append(a[0])
+        a = len(adhan_names)
+        if a == 0:
+            return None, None, None
+        if a == len(time_list):
+            exportdat = export_date(question, tokens, labels)
+            date_list = []
+            for d in exportdat:
+                if d[0] != None:
+                    date_list.append(d[0])
+            if not date_list:
+                date_list.append(datetime.datetime.today())
+            locs = location_handler(question, tokens, labels)
+            mixture = mix_tdl(adhan_names, date_list, locs)
+            if mixture:
+                for m in mixture:
+                    t, u = adhan.get_city_adhan_time(m[2], m[1], m[0])
+                    res.append(t)
+                    url.append(u)
+            return res, url, adhan_names
+        if a < len(time_list):
+            exportdat = export_date(question, tokens, labels)
+            date_list = []
+            for d in exportdat:
+                if d[0] != None:
+                    date_list.append(d[0])
+            if not date_list:
+                date_list.append(datetime.datetime.today())
+            locs = location_handler(question, tokens, labels)
+            mixture = mix_tdl(time_list, date_list, locs)
+            if mixture:
+                for m in mixture:
+                    if m[0] in adhan_names:
+                        t, u = adhan.get_city_adhan_time(m[2], m[1], m[0])
+                        res.append(t)
+                        url.append(u)
+                    else:
+                        res.append(m[0])
+            return res, url, adhan_names
+
+
 def export_time_single(st_arr, st=None):
     not_st = False
     if not st:
@@ -221,15 +295,25 @@ def export_time_single(st_arr, st=None):
 
 def export_time(question, tokens, labels):
     labels = np.array(labels)
-    b_time = np.where(labels == "B-time")[0]
-    i_time = np.where(labels == "I-time")[0]
+    b_time = np.where(labels == "B_TIM")[0]
+    i_time = np.where(labels == "I_TIM")[0]
+    url = None
     n = len(b_time)
     if n == 0:
         st_arr = word_tokenize(question)
-        return [export_time_single(st_arr, question)]
+        t_ = export_time_single(st_arr, question)
+
+        if t_ == None:
+            res, url, adhan_names = adhan_handler(
+                None, tokens, labels, question)
+            if res != None:
+                return res, True, "-".join(url), adhan_names
+
+        return [t_], False, None, None
 
     elif n >= 2:
         t_ = []
+        time_texts = []
         for i in range(n):
             st_arr = []
             if i < n - 1:
@@ -239,11 +323,20 @@ def export_time(question, tokens, labels):
                 ida = i_time[np.where(i_time > b_time[i])]
             for t in np.r_[b_time[i], ida]:
                 st_arr.append(tokens[int(t)])
+            time_texts.append(" ".join(st_arr))
             t_.append(export_time_single(st_arr))
+        is_adhan_needed = False
+        new_t = copy(t_)
         for i, t in enumerate(t_):
-            if t == None:
-                t_[i] = export_time_single(tokens[b_time[i]:])
-        return t_
+            if t_[i] == None:
+                new_t[i] = time_texts[i]
+                is_adhan_needed = True
+        if is_adhan_needed:
+            res, url, adhan_names = adhan_handler(
+                new_t, tokens, labels, question)
+            if not None in res and res != None:
+                return res, True, "-".join(url), adhan_names
+        return t_, False, None, None
     else:
         st_arr = []
         for t in np.r_[b_time, i_time]:
@@ -251,4 +344,9 @@ def export_time(question, tokens, labels):
         t_ = export_time_single(st_arr)
         if t_ == None:
             t_ = export_time_single(word_tokenize(question), question)
-        return [t_]
+        if t_ == None:
+            res, url, adhan_names = adhan_handler(
+                None, tokens, labels, question)
+            if res != None:
+                return res, True, "-".join(url), adhan_names
+        return [t_], False, None, None

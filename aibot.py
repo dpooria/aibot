@@ -6,15 +6,14 @@ from weatherAPI import Weather
 from adhanAPI import Adhan
 from timeAPI import Time
 from calenderAPI import Calender
-from aibot_utils import cleaning, classifyQuestion, nerQuestion
+from aibot_utils import cleaning, classify_question, ner_question
 
 
 TR_ID_AIBOTID = {0: "1", 1: "2", 4: "3", 3: "4", 2: "-1"}
 # CLASSIFIER_PATH = "/var/www/AIBot/media/codes/user_dpooria75@gmail.com/classifier"
 # PARSBERTNER_PATH = "/var/www/AIBot/media/parsbert"
 CLASSIFIER_PATH = "../models/classifier"
-PARSBERTNER_PATH = "../models/parsbertner"
-
+PARSBERTNER_PATH = "../models/ner_model"
 
 
 class BOT:
@@ -52,13 +51,13 @@ class BOT:
         answer = {'type': '0', 'city': [], 'date': [],
                   'time': [], 'religious_time': [], 'calendar_type': [], 'event': [], 'api_url': '', 'result': ''}
         Question = cleaning(Question)
-        type_pred = TR_ID_AIBOTID[classifyQuestion(
+        type_pred = TR_ID_AIBOTID[classify_question(
             self.classifier_model, self.classifier_tokenizer, Question)]
 
         if type_pred == "-1":
             answer["type"] = "-1"
             return answer
-        tokens, labels = nerQuestion(
+        tokens, labels = ner_question(
             self.ner_model, self.ner_tokenizer, self.ner_config, Question)
         if type_pred == "1":
             return self.weather_api.get_answer(Question, tokens, labels)
