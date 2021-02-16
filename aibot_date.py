@@ -931,7 +931,7 @@ def export_date(question, tokens, labels):
             if isinstance(d_single[0], list):
                 dat = []
                 for eds in d_single[0]:
-                    dat.append((eds[0], d_single[1]))
+                    dat.append((eds, d_single[1]))
             return [d_single]
         else:
             return [check_event(question, tokens, labels, today_gregorian, today_hijri, today_jalali, calender_type)]

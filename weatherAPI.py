@@ -107,7 +107,6 @@ class Weather:
             new_date_list = [today]
             d_n = 1
         date_list = new_date_list
-
         answer["date"] = date_list_jalali
 
         l_n = len(location)
