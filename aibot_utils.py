@@ -237,5 +237,6 @@ def mix_tdl(times, dates, locations):
 
 
 def unique_without_sort(arr):
+    arr = list(np.array(arr).flatten())
     indexes = np.unique(arr, return_index=True)[1]
     return [arr[index] for index in sorted(indexes)]

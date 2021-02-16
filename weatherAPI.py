@@ -1,5 +1,5 @@
 
-from aibot_utils import location_handler, mix_tdl, unique_without_sort
+from aibot_utils import location_handler, unique_without_sort
 import requests
 import numpy as np
 import pandas as pd
@@ -85,8 +85,8 @@ class Weather:
                 events.append(d[1][2])
         answer["event"] = events
         d_n = len(date_list)
+        today = datetime.datetime.today()
         if d_n == 0:
-            today = datetime.datetime.today()
             date_list = [today]
             today_j = gregorian_to_jalali(today.year, today.month, today.day)
             answer["date"] = [format_jalali_date(today_j)]
@@ -95,9 +95,18 @@ class Weather:
         date_list = unique_without_sort(date_list)
         d_n = len(date_list)
         date_list_jalali = []
+        new_date_list = []
+        next5day = today + datetime.timedelta(5)
         for d in date_list:
             j = gregorian_to_jalali(d.year, d.month, d.day)
             date_list_jalali.append(format_jalali_date(j))
+            if d.date() <= next5day.date() and d.date() >= today.date():
+                new_date_list.append(d)
+
+        if len(new_date_list) == 0:
+            new_date_list = [today]
+            d_n = 1
+        date_list = new_date_list
 
         answer["date"] = date_list_jalali
 
@@ -333,7 +342,6 @@ class Weather:
             if ita in question:
                 ta = True
         if len(mean_abs_list) == 1 or np.unique(mean_abs_list).size == 1:
-
             func = wfunc_dict[mean_abs_list[0]]
             if (t == 0 or t == 1) and d >= 2 and l == 1:
                 for dat in date_list:
@@ -531,13 +539,11 @@ class Weather:
         d = len(date_list)
         l = len(location)
         if len(mean_abs_list) == 2:
-            func = None
             if mean_abs_list[1] == "amin_abs" or mean_abs_list[1] == "amax_abs":
                 func = self.min_max_handler
             else:
                 func = self.mean_handler
             res = []
-            dlt_max = np.argmax([d, l, t])
 
             ta = False
             for ita in temp_asked:
@@ -687,19 +693,20 @@ class Weather:
             res = self.getCityWeatherInDatePeriod(
                 location[0], datetime.datetime.combine(
                     np.min(date_list).date(), datetime.time(1, 0)),
-                datetime.datetime.combine(np.max(date_list).date(), datetime.time(23, 59)))["temp"]
-            ta = False
-            for ita in temp_asked:
-                if ita in question:
-                    ta = True
-            if ta or force_return_temp:
-                result = min_max_func(res)
-            else:
-                result = date_list[min_max_func(res)]
-                result = gregorian_to_jalali(
-                    result.year, result.month, result.day)
-                result = format_jalali_date(result)
-            return result
+                datetime.datetime.combine(np.max(date_list).date(), datetime.time(23, 59)))
+            if not res.empty:
+                ta = False
+                for ita in temp_asked:
+                    if ita in question:
+                        ta = True
+                if ta or force_return_temp:
+                    result = res["temp"].iloc[min_max_func(res["temp"])]
+                else:
+                    result = res["dt_txt"].iloc[min_max_func(res["temp"])]
+                    result = gregorian_to_jalali(
+                        result.year, result.month, result.day)
+                    result = format_jalali_date(result)
+                return result
 
         # t1 d>=2 l1
         if t == 1 and d >= 2 and l == 1:

@@ -581,6 +581,21 @@ def year_exporter(st, today, calender_type=0):
     return None
 
 
+def get_aweek_dayset(today, val):
+    today_week = tr_isoweek_toperweekday(today.weekday())
+    w_ = val // 7
+    if w_ == 0:
+        saturday = today + datetime.timedelta(-today_week)
+    else:
+        saturday = today + \
+            datetime.timedelta(w_ * 7 - w_ * (today_week))
+    res = []
+    for i in range(7):
+        res.append(saturday + datetime.timedelta(i))
+
+    return res
+
+
 def day_exporter(st, today):
     # try weeks days:
     d_d = []
@@ -622,30 +637,33 @@ def day_exporter(st, today):
             match_liter = st.find(d_d[-1])
             b_match_liter = st[:match_liter + len(d_d[-1]) + 1]
             n = re.findall("\d+\s+{}".format(d_d[-1]), b_match_liter)
-            if n:
-                try:
-                    n = re.findall("\d+", n[0])
-                    day = []
-                    for i in range(1, n + 1):
-                        day.append(today + datetime.timedelta(i))
-                except Exception:
-                    day = datetime.timedelta(val) + today
+            if val == 0j or val == 7j or val == -7j:
+                day = get_aweek_dayset(today, val.imag)
             else:
-                try:
-                    # writed numbers
-                    s = []
-                    for w in word_tokenize(b_match_liter):
-                        if w in perstr_to_num.keys():
-                            s.append(w)
-                    if s:
-                        n = convertStr2num(" ".join(s))
+                if n:
+                    try:
+                        n = re.findall("\d+", n[0])
                         day = []
                         for i in range(1, n + 1):
                             day.append(today + datetime.timedelta(i))
-                    else:
-                        day = today + datetime.timedelta(val)
-                except Exception:
-                    day = today + datetime.datetime.timedelta(val)
+                    except Exception:
+                        day = datetime.timedelta(val.real) + today
+                else:
+                    try:
+                        # writed numbers
+                        s = []
+                        for w in word_tokenize(b_match_liter):
+                            if w in perstr_to_num.keys():
+                                s.append(w)
+                        if s:
+                            n = convertStr2num(" ".join(s))
+                            day = []
+                            for i in range(1, n + 1):
+                                day.append(today + datetime.timedelta(i))
+                        else:
+                            day = today + datetime.timedelta(val.real)
+                    except Exception:
+                        day = today + datetime.datetime.timedelta(val.real)
             return day, True
         match_liter = st.find(d_d[-1])
         b_match_liter = st[:match_liter + len(d_d[-1]) + 1]
@@ -962,7 +980,6 @@ def export_date(question, tokens, labels):
 
         d_ = export_date_single(
             st_arr, today_list, calender_type_is_found, calender_type)
-        print(d_)
         if isinstance(d_[0], list):
             dates = []
             for dat in d_[0]:
