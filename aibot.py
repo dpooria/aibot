@@ -8,7 +8,7 @@ from adhanAPI import Adhan
 from timeAPI import Time
 from calenderAPI import Calender
 from aibot_utils import cleaning, classify_question, ner_question
-
+import os
 
 TR_ID_AIBOTID = {0: "1", 1: "2", 4: "3", 3: "4", 2: "-1"}
 # CLASSIFIER_PATH = "/var/www/AIBot/media/codes/user_dpooria75@gmail.com/classifier"
@@ -19,6 +19,7 @@ PARSBERTNER_PATH = "../models/ner_model"
 
 class BOT:
     def __init__(self):
+        os.environ["TOKENIZERS_PARALLELISM"] = "false"
         self.modified = False
         # load models
         self.classifier_tokenizer = BertTokenizer.from_pretrained(
