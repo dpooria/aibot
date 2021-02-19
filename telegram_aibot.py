@@ -96,11 +96,11 @@ def echo(update, context):
 
 
 def transcribe_voice(update, context):
-    duration = context.message.voice.duration
+    duration = update.message.voice.duration
     logger.info('transcribe_voice. Message duration: '+duration)
 
     # Fetch voice message
-    voice = update.getFile(context.message.voice.file_id)
+    voice = update.getFile(update.message.voice.file_id)
 
     # Transcode the voice message from audio/x-opus+ogg to audio/x-wav
     # One should use a unique in-memory file, but I went for a quick solution for demo purposes
