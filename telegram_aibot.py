@@ -21,6 +21,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
 from aibot import BOT
 import ftransc.core as ft
 
+
 type_dict = {"-1": "پرسش خارج از توان",
              "1": "آب و هوا",
              "2": "اوقات شرعی",
@@ -97,18 +98,15 @@ def echo(update, context):
 
 def transcribe_voice(update, context):
     duration = update.message.voice.duration
-    logger.info('transcribe_voice. Message duration: '+duration)
+    logger.info('transcribe_voice. Message duration: {}'.format(duration))
 
-    # Fetch voice message
-    voice = update.getFile(update.message.voice.file_id)
+    voice = context.bot.getFile(update.message.voice.file_id)
 
-    # Transcode the voice message from audio/x-opus+ogg to audio/x-wav
-    # One should use a unique in-memory file, but I went for a quick solution for demo purposes
     file_name = "userID{}messageID{}".format(
         update.message.chat.username, update.message.message_id)
 
     ft.transcode(voice.download(
-        'voice/{}.ogg'.format(file_name)), 'wav')  # file.wav
+        'voice/{}.ogg'.format(file_name)), 'wav', output_folder="voice")  # file.wav
     res, response, question, generated_sentence = bot.AIBOT_Modified(
         "voice/{}.wav".format(file_name))
     res_str = st_res_show.format(type_dict[res["type"][0]], res["city"], res["date"],
@@ -123,6 +121,16 @@ def transcribe_voice(update, context):
     update.message.reply_text(res_str, reply_markup=reply_markup)
     update.message.reply_text(
         "پرسش شما:\n{}\nپاسخ تولید شده:\n{}".format(question, generated_sentence))
+
+    with open("voice/{}res.wav".format(file_name), mode='wb') as f:
+        f.write(response.content)
+
+    ft.transcode("voice/{}res.wav".format(file_name),
+                 "ogg", output_folder="voice")
+
+    context.bot.send_audio(update.message.chat_id, audio=open(
+        "voice/{}res.ogg".format(file_name), "rb"))
+
     with open("collect/{}.txt".format(file_name), "w") as f_res:
         print(question, file=f_res)
         print("\n", file=f_res)
