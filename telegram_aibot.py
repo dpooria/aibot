@@ -104,9 +104,13 @@ def transcribe_voice(update, context):
 
     # Transcode the voice message from audio/x-opus+ogg to audio/x-wav
     # One should use a unique in-memory file, but I went for a quick solution for demo purposes
-    ft.transcode(voice.download('file.ogg'), 'wav')  # file.wav
+    file_name = "userID{}messageID{}".format(
+        update.message.chat.username, update.message.message_id)
+
+    ft.transcode(voice.download(
+        'voice/{}.ogg'.format(file_name)), 'wav')  # file.wav
     res, response, question, generated_sentence = bot.AIBOT_Modified(
-        "file.wav")
+        "voice/{}.wav".format(file_name))
     res_str = st_res_show.format(type_dict[res["type"][0]], res["city"], res["date"],
                                  res["time"], res["religious_time"], res["calendar_type"], res["event"], res["result"])
 
