@@ -1,7 +1,8 @@
 
 from transformers import TFBertForSequenceClassification, TFAutoModelForTokenClassification
 from transformers import BertTokenizer, AutoTokenizer, AutoConfig
-
+from speechRec import google
+from aryana import *
 from weatherAPI import Weather
 from adhanAPI import Adhan
 from timeAPI import Time
@@ -48,8 +49,8 @@ class BOT:
     '''
 
     def AIBOT(self, Question):
-        answer = {'type': '0', 'city': [], 'date': [],
-                  'time': [], 'religious_time': [], 'calendar_type': [], 'event': [], 'api_url': '', 'result': ''}
+        answer = {'type': ['0'], 'city': [], 'date': [],
+                  'time': [], 'religious_time': [], 'calendar_type': [], 'event': [], 'api_url': '', 'result': []}
         Question = cleaning(Question)
         type_pred = TR_ID_AIBOTID[classify_question(
             self.classifier_model, self.classifier_tokenizer, Question)]
@@ -62,7 +63,11 @@ class BOT:
         if type_pred == "1":
             return self.weather_api.get_answer(Question, tokens, labels)
         elif type_pred == "2":
-            return self.adhan_api.get_answer(Question, tokens, labels)
+            res = self.adhan_api.get_answer(Question, tokens, labels)
+            if res:
+                return res
+            else:
+                return self.weather_api.get_answer(Question, tokens, labels)
         elif type_pred == "3":
             return self.time_api.get_answer(Question, tokens, labels)
         else:
@@ -79,9 +84,46 @@ class BOT:
     '''
 
     def AIBOT_Modified(self, Address):
-        answer = {'type': '0', 'city': [], 'date': [],
-                  'time': [], 'religous_time': [], 'calendar_type': [], 'event': [], 'api_url': '', 'result': ''}
-        '''
-        You should implement your code right here.
-        '''
-        return answer
+        # self.deepm = Deepmine()
+        answer = {'type': ['0'], 'city': [], 'date': [],
+                  'time': [], 'religious_time': [], 'calendar_type': [], 'event': [], 'api_url': '', 'result': []}
+        # r, Question = self.deepm.get_text(Address)
+        # if r == 0:
+        #     generated_sentence = "ارور تبدیل صوت به تکست!"
+        #     response = aryana(generated_sentence)
+        #     return answer, response
+
+        # file = open(Address, mode='rb')
+        # comment = "1130377539"
+        # text = nevisa(file, comment)
+        # print(text)
+        text = google(Address)
+        Question = text
+        Question = cleaning(Question)
+        type_pred = TR_ID_AIBOTID[classify_question(
+            self.classifier_model, self.classifier_tokenizer, Question)]
+
+        if type_pred == "-1":
+            answer["type"] = ["-1"]
+            generated_sentence = "سوال پرسیده شده خارج از توان بات می‌باشد"
+        tokens, labels = ner_question(
+            self.ner_model, self.ner_tokenizer, self.ner_config, Question)
+        if type_pred == "1":
+            answer, generated_sentence = self.weather_api.get_answer(
+                Question, tokens, labels)
+        elif type_pred == "2":
+            answer, generated_sentence = self.adhan_api.get_answer(
+                Question, tokens, labels)
+            if not answer:
+                answer, generated_sentence = self.weather_api.get_answer(
+                    Question, tokens, labels)
+        elif type_pred == "3":
+            answer, generated_sentence = self.time_api.get_answer(
+                Question, tokens, labels)
+        else:
+            answer, generated_sentence = self.calender_api.get_answer(
+                Question, tokens, labels)
+
+        response = aryana(generated_sentence)
+
+        return answer, response, Question, generated_sentence

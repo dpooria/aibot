@@ -5,10 +5,13 @@ import datetime
 import requests
 import numpy as np
 import pandas as pd
+from transformers.utils.dummy_pt_objects import ElectraForMaskedLM
 
 from aibot_date import export_date, format_jalali_date, gregorian_to_jalali
-from aibot_utils import location_handler, get_city_info, unique_without_sort
-from vocab import hours_left_asked, logical_question, tr_adhan_names
+from aibot_utils import location_handler, get_city_info, unique_without_sort, cleaning
+from vocab import hours_left_asked, adhan_logical_question, tr_adhan_names, weather_logical
+from copy import copy
+from reply_gen import tr_date, tr_time, tr_single_date, tr_single_time
 
 
 class Adhan:
@@ -41,7 +44,7 @@ class Adhan:
                         if hour > 24:
                             tt = hour
                             hour = minute
-                            tt = minute
+                            minute = tt
                     else:
                         hour = 0
                         minute = 0
@@ -97,20 +100,59 @@ class Adhan:
         res = res.total_seconds()
         hours = res // 3600
         minutes = (res // 60) % 60
-        return datetime.time(int(hours), int(minutes)).strftime("%H:%M"), url
+        if minutes != 0:
+            generated_text = "{} ساعت و {} دقیقه".format(
+                int(hours), int(minutes))
+        else:
+            generated_text = "{} ساعت".format(int(hours))
+        if minutes != 0:
+            generated_text = "{} ساعت و {} دقیقه".format(
+                int(hours), int(minutes))
+        else:
+            generated_text = "{} ساعت".format(int(hours))
+        h_st = ""
+        if abs(hours) > 10:
+            h_st = "{}".format(int(hours))
+        elif hours < 0:
+            h_st = "-0{}".format(int(abs(hours)))
+        else:
+            h_st = "0{}".format(int(hours))
+        m_st = "{}".format(int(minutes)) if abs(
+            minutes) > 10 else "0{}".format(int(minutes))
+        return "%s:%s" % (h_st, m_st), url, generated_text
 
     @staticmethod
     def format_time_delta(dt):
         totsec = dt.total_seconds()
         h = totsec // 3600
         m = (totsec // 60) % 60
-        return datetime.time(
-            int(h), int(m)).strftime("%H:%M")
+        if m != 0:
+            generated_text = "{} ساعت و {} دقیقه".format(int(h), int(m))
+        else:
+            generated_text = "{} ساعت".format(int(h))
+        h_st = ""
+        if abs(h) > 10:
+            h_st = "{}".format(int(h))
+        elif h < 0:
+            h_st = "-0{}".format(int(abs(h)))
+        else:
+            h_st = "0{}".format(int(h))
+        m_st = "{}".format(int(m)) if abs(m) > 10 else "0{}".format(int(m))
+        return "%s:%s" % (h_st, m_st), generated_text
 
     def get_answer(self, question, tokens, labels):
-        answer = {'type': '2', 'city': [], 'date': [],
-                  'time': [], 'religious_time': [], 'calendar_type': [], 'event': [], 'api_url': [''], 'result': ''}
-        location = unique_without_sort(location_handler(question, tokens, labels))
+        answer = {'type': ['2'], 'city': [], 'date': [],
+                  'time': [], 'religious_time': [], 'calendar_type': [], 'event': [], 'api_url': [''], 'result': []}
+        generated_sentence = ""
+        is_wrong_classifier = False
+        for k in ["سردتر", "گرمتر", "سردترین", "گرمترین", "اختلاف دمای", "میانگین دما"]:
+            if k in question:
+                is_wrong_classifier = True
+                break
+        if is_wrong_classifier:
+            return False
+        location = unique_without_sort(
+            location_handler(question, tokens, labels))
         answer["city"] = location
         date_list = []
         date_list_jalali = []
@@ -145,55 +187,258 @@ class Adhan:
             answer["city"] = ["تهران"]
             location = ["تهران"]
             l_n = 1
-        api_url = []
         exportedAdhan = self.export_adhan_names(question)
         n_adhan = len(exportedAdhan)
         if n_adhan == 0:
-            return answer
-        answer["religious_time"] = exportedAdhan
+            return answer, generated_sentence
+        answer["religious_time"] = copy(exportedAdhan)
+        new_adhan_names = []
+        for e in exportedAdhan:
+            if tr_adhan_names[e] == "All":
+                new_adhan_names.append("اذان صبح")
+                new_adhan_names.append("اذان ظهر")
+                new_adhan_names.append("اذان مغرب")
+                new_adhan_names.append("نیمه شب شرعی")
+            else:
+                new_adhan_names.append(e)
+        exportedAdhan = new_adhan_names
+        n_adhan = len(exportedAdhan)
         res, url = self.get_city_adhan_time(
             location[0], date_list[0].date(), exportedAdhan[0])
         answer["api_url"] = [url]
         if n_adhan == 1 and l_n == 1 and d_n == 1:
             if res != None:
-                answer["result"] = res.strftime("%H:%M")
+                answer["result"] = [res.strftime("%H:%M")]
+                generated_sentence = "زمان {} {} {}، {} میباشد".format(
+                    exportedAdhan[0], tr_single_date(date_list[0]), location[0], tr_single_time(res))
             is_hour_lef_asked = False
+            ihla = []
             for h in hours_left_asked:
                 if h in question:
                     is_hour_lef_asked = True
+                    ihla.append(h)
             if not is_hour_lef_asked:
-                return answer
+                return answer, cleaning(generated_sentence)
             else:
                 tnow = datetime.datetime.now()
-                dt = abs(
-                    tnow - datetime.datetime.combine(date_list[0].date(), res))
-                answer["result"] = self.format_time_delta(dt)
-
+                dadhan = datetime.datetime.combine(date_list[0].date(), res)
+                if ihla[0] != "گذشته":
+                    if dadhan < tnow:
+                        dadhan = dadhan + datetime.timedelta(1)
+                        date_list[0] = date_list[0] + datetime.timedelta(1)
+                    generated_sentence = "تا {} {} {}، {} مانده است"
+                else:
+                    generated_sentence = "از {} {} {}، {} گذشته است"
+                dt = tnow - dadhan if tnow > dadhan else dadhan - tnow
+                answer["result"], gd = self.format_time_delta(dt)
+                answer["result"] = [answer["result"]]
+                generated_sentence = generated_sentence.format(
+                    exportedAdhan[0], tr_single_date(date_list[0]), location[0], gd)
         else:
             # check if it's a logical question
             isLogical = False
-            for l in logical_question:
+            for l in adhan_logical_question:
                 if l in tokens:
                     isLogical = True
             if isLogical:
                 if n_adhan > 1 and l_n == 1 and d_n == 1:
-                    answer["result"], answer["api_url"] = self.get_difference_adhan(
+                    answer["result"], answer["api_url"], gd = self.get_difference_adhan(
                         location[0], location[0], date_list[0], date_list[0], exportedAdhan[0], exportedAdhan[1])
+                    generated_sentence = "اختلاف {} و {} {} {}، {} است".format(
+                        exportedAdhan[0], exportedAdhan[1], tr_single_date(date_list[0]), location[0], gd)
                 elif n_adhan == 1 and l_n > 1 and d_n == 1:
-                    answer["result"], answer["api_url"] = self.get_difference_adhan(
+                    answer["result"], answer["api_url"], gd = self.get_difference_adhan(
                         location[0], location[1], date_list[0], date_list[0], exportedAdhan[0], exportedAdhan[0])
+                    generated_sentence = "اختلاف {} {} {}، {} میباشد".format(
+                        exportedAdhan[0], tr_single_date(date_list[0]), " و ".join(location), gd)
                 elif n_adhan == 1 and l_n == 1 and d_n > 1:
-                    answer["result"], answer["api_url"] = self.get_difference_adhan(
+                    answer["result"], answer["api_url"], gd = self.get_difference_adhan(
                         location[0], location[0], date_list[0], date_list[1], exportedAdhan[0], exportedAdhan[0])
+                    generated_sentence = "اختلاف {} {} {}، {} است".format(
+                        exportedAdhan[0], " و ".join(tr_date(date_list, tokens, labels)), location[0], gd)
                 elif n_adhan == 2 and l_n == 2 and d_n == 1:
-                    answer["result"], answer["api_url"] = self.get_difference_adhan(
+                    answer["result"], answer["api_url"], gd = self.get_difference_adhan(
                         location[0], location[1], date_list[0], date_list[0], exportedAdhan[0], exportedAdhan[1])
+                    generated_sentence = "اختلاف زمان {} {} و {} {} {}، {} میباشد".format(
+                        exportedAdhan[0], location[0], exportedAdhan[1], location[1], tr_single_date(date_list[0]), gd)
                 elif n_adhan == 2 and l_n == 1 and d_n == 2:
-                    answer["result"], answer["api_url"] = self.get_difference_adhan(
+                    answer["result"], answer["api_url"], gd = self.get_difference_adhan(
                         location[0], location[0], date_list[0], date_list[1], exportedAdhan[0], exportedAdhan[1])
+                    generated_sentence = "اختلاف زمان {} {} و {} {} {}، {} میباشید".format(exportedAdhan[0], tr_single_date(
+                        date_list[0]), exportedAdhan[1], tr_single_date(date_list[1]), location[0], gd)
                 elif n_adhan == 1 and l_n == 2 and d_n == 2:
-                    answer["result"], answer["api_url"] = self.get_difference_adhan(
+                    answer["result"], answer["api_url"], gd = self.get_difference_adhan(
                         location[0], location[1], date_list[0], date_list[0], exportedAdhan[0], exportedAdhan[1])
+                    generated_sentence = "اختلاف زمان {} {} {} و {} {}، {} است".format(exportedAdhan[0], tr_single_date(
+                        date_list[0]), location[0], tr_single_date(date_list[1]), location[1], gd)
+            else:
+                res_list = []
+                url_list = []
+                if n_adhan >= 2 and l_n == 1 and d_n == 1:
+                    generated_sentence = "{} به افق {} ".format(
+                        tr_single_date(date_list[0]), location[0])
+                    for i, ad in enumerate(exportedAdhan):
+                        res, url = self.get_city_adhan_time(
+                            location[0], date_list[0].date(), ad)
+                        if res != None and url != None:
+                            res_list.append(res.strftime("%H:%M"))
+                            url_list.append(url)
+                            if i < n_adhan - 2:
+                                generated_sentence = generated_sentence + \
+                                    "{} ،{} ، ".format(ad, tr_single_time(res))
+                            elif i == n_adhan - 2:
+                                generated_sentence = generated_sentence + \
+                                    "{} ،{} و ".format(ad, tr_single_time(res))
+                            else:
+                                generated_sentence = generated_sentence + \
+                                    "{} ،{} ".format(ad, tr_single_time(res))
+                    generated_sentence = generated_sentence + "میباشد"
+                elif n_adhan == 1 and l_n >= 2 and d_n == 1:
+                    generated_sentence = "{} ".format(
+                        tr_single_date(date_list[0]))
+                    for i, lc in enumerate(location):
+                        res, url = self.get_city_adhan_time(
+                            lc, date_list[0].date(), exportedAdhan[0])
+                        if res != None and url != None:
+                            res_list.append(res.strftime("%H:%M"))
+                            url_list.append(url)
+                            if i < l_n - 2:
+                                generated_sentence = generated_sentence + \
+                                    "{} به افق {}، {} ،".format(
+                                        exportedAdhan[0], lc, tr_single_time(res))
+                            elif i == l_n - 2:
+                                generated_sentence = generated_sentence + \
+                                    "{} به افق {}، {} و ".format(
+                                        exportedAdhan[0], lc, tr_single_time(res))
+                            else:
+                                generated_sentence = generated_sentence + \
+                                    "{} به افق {}، {} ".format(
+                                        exportedAdhan[0], lc, tr_single_time(res))
+                    generated_sentence = generated_sentence + " میباشد"
+                elif n_adhan == 1 and l_n == 1 and d_n >= 2:
+                    generated_sentence = "{} {}، ".format(
+                        exportedAdhan[0], location[0])
 
-            return answer
-        return answer
+                    for i, dat in enumerate(date_list):
+                        res, url = self.get_city_adhan_time(
+                            location[0], dat.date(), exportedAdhan[0])
+                        if res != None and url != None:
+                            res_list.append(res.strftime("%H:%M"))
+                            url_list.append(url)
+                            if i < d_n - 2:
+                                generated_sentence = generated_sentence + \
+                                    "{}، {}، ".format(tr_single_date(
+                                        dat), tr_single_time(res))
+                            elif i == d_n - 2:
+                                generated_sentence = generated_sentence + \
+                                    "{}، {} و ".format(tr_single_date(
+                                        dat), tr_single_time(res))
+                            else:
+                                generated_sentence = generated_sentence + \
+                                    "{}، {}، ".format(tr_single_date(
+                                        dat), tr_single_time(res))
+                    generated_sentence = generated_sentence + " میباشد"
+
+                elif n_adhan == l_n and d_n == 1:
+                    generated_sentence = "{}، ".format(
+                        tr_single_date(date_list[0]))
+                    s = 0
+                    for ad, lc in zip(exportedAdhan, location):
+                        res, url = self.get_city_adhan_time(
+                            lc, date_list[0].date(), ad)
+                        if res != None and url != None:
+                            res_list.append(res.strftime("%H:%M"))
+                            url_list.append(url)
+                            if s < l_n - 2:
+                                generated_sentence = generated_sentence + \
+                                    "{} {}، {}، ".format(
+                                        ad, lc, tr_single_time(res))
+                            elif s == l_n - 2:
+                                generated_sentence = generated_sentence + \
+                                    "{} {}، {} و ".format(
+                                        ad, lc, tr_single_time(res))
+                            else:
+                                generated_sentence = generated_sentence + \
+                                    "{} {}، {} ".format(
+                                        ad, lc, tr_single_time(res))
+                            s += 1
+                    generated_sentence = generated_sentence + "میباشد"
+                elif n_adhan == 1 and l_n == d_n:
+                    generated_sentence = ""
+                    s = 0
+                    for lc, dat in zip(location, date_list):
+                        res, url = self.get_city_adhan_time(
+                            lc, dat.date(), exportedAdhan[0])
+                        if res != None and url != None:
+                            res_list.append(res.strftime("%H:%M"))
+                            url_list.append(url)
+                            if s < l_n - 2:
+                                generated_sentence = generated_sentence + \
+                                    "{} {}، {}، {}، ".format(
+                                        exportedAdhan[0], lc, tr_single_date(dat), tr_single_time(res))
+                            elif s == l_n - 2:
+                                generated_sentence = generated_sentence + \
+                                    "{} {}، {}، {} و ".format(
+                                        exportedAdhan[0], lc, tr_single_date(dat), tr_single_time(res))
+                            else:
+                                generated_sentence = generated_sentence + \
+                                    "{} {}، {}، {} ".format(
+                                        exportedAdhan[0], lc, tr_single_date(dat), tr_single_time(res))
+                            s += 1
+                    generated_sentence = generated_sentence + "میباشد"
+
+                elif n_adhan == d_n and l_n == 1:
+                    generated_sentence = ""
+                    s = 0
+                    for ad, dat in zip(exportedAdhan, date_list):
+                        res, url = self.get_city_adhan_time(
+                            location[0], dat.date(), ad)
+                        if res != None and url != None:
+                            res_list.append(res.strftime("%H:%M"))
+                            url_list.append(url)
+                            if s < d_n - 2:
+                                generated_sentence = generated_sentence + \
+                                    "{} {}، {}، ".format(
+                                        tr_single_date(dat), ad, tr_single_time(res))
+                            elif s == d_n - 2:
+                                generated_sentence = generated_sentence + \
+                                    "{} {}، {} و ".format(
+                                        tr_single_date(dat), ad, tr_single_time(res))
+                            else:
+                                generated_sentence = generated_sentence + \
+                                    "{} {}، {} ".format(
+                                        tr_single_date(dat), ad, tr_single_time(res))
+                            s += 1
+
+                    generated_sentence = generated_sentence + \
+                        "به افق {} میباشد".format(location[0])
+
+                elif (n_adhan == d_n) and (l_n == d_n):
+                    generated_sentence = ""
+                    s = 0
+                    for i in range(d_n):
+                        res, url = self.get_city_adhan_time(
+                            location[i], date_list[i].date(), exportedAdhan[i])
+                        if res != None and url != None:
+                            res_list.append(res.strftime("%H:%M"))
+                            url_list.append(url)
+                            if s < l_n - 2:
+                                generated_sentence = generated_sentence + \
+                                    "{}، {} {}، {}، ".format(tr_single_date(
+                                        date_list[i]), exportedAdhan[i], location[i], tr_single_time(res))
+                            elif s == l_n - 2:
+                                generated_sentence = generated_sentence + \
+                                    "{} {}، {}، {} و ".format(tr_single_date(
+                                        date_list[i]), exportedAdhan[i], location[i], tr_single_time(res))
+                            else:
+                                generated_sentence = generated_sentence + \
+                                    "{} {}، {} {} ".format(tr_single_date(
+                                        date_list[i]), exportedAdhan[i], location[i], tr_single_time(res))
+                            s += 1
+                    generated_sentence = generated_sentence + "میباشد"
+
+                answer["result"] = res_list
+                answer["api_url"] = url_list
+                return answer, cleaning(generated_sentence)
+
+        return answer, cleaning(generated_sentence)

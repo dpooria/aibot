@@ -3,7 +3,7 @@ import datetime
 import re
 from aibot_date import convertStr2num, export_date
 import numpy as np
-from aibot_utils import cleaning, location_handler, mix_tdl
+from aibot_utils import cleaning, location_handler, mix_tdl, unique_without_sort
 from adhanAPI import Adhan
 from hazm import word_tokenize
 from vocab import am_pm_dict, time_literals, minute_literals, perstr_to_num
@@ -187,7 +187,11 @@ def hour_min_exporter(st):
             return fix_hour_ampm(st, hour), minute
         except Exception:
             pass
-
+    # let's just return a number as hour:
+    mtch = re.findall("\d+", st)
+    if mtch:
+        hour = int(mtch[0])
+        return fix_hour_ampm(st, hour), 0
     return None, None
 
 
@@ -203,6 +207,7 @@ def adhan_handler(time_list, tokens, labels, question):
             for d in exportdat:
                 if d[0] != None:
                     date_list.append(d[0])
+            date_list = unique_without_sort(date_list)
             if not date_list:
                 date_list.append(datetime.datetime.today())
             locs = location_handler(question, tokens, labels)
@@ -307,7 +312,7 @@ def export_time(question, tokens, labels):
             res, url, adhan_names = adhan_handler(
                 None, tokens, labels, question)
             if res != None:
-                return res, True, "-".join(url), adhan_names
+                return res, True, url, adhan_names
 
         return [t_], False, None, None
 
@@ -334,8 +339,9 @@ def export_time(question, tokens, labels):
         if is_adhan_needed:
             res, url, adhan_names = adhan_handler(
                 new_t, tokens, labels, question)
-            if not None in res and res != None:
-                return res, True, "-".join(url), adhan_names
+            if res != None:
+                if not None in res:
+                    return res, True, url, adhan_names
         return t_, False, None, None
     else:
         st_arr = []
@@ -348,5 +354,5 @@ def export_time(question, tokens, labels):
             res, url, adhan_names = adhan_handler(
                 None, tokens, labels, question)
             if res != None:
-                return res, True, "-".join(url), adhan_names
+                return res, True, url, adhan_names
         return [t_], False, None, None

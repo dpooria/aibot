@@ -19,7 +19,7 @@ import logging
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler
 from aibot import BOT
-
+import ftransc.core as ft
 
 type_dict = {"-1": "پرسش خارج از توان",
              "1": "آب و هوا",
@@ -67,8 +67,8 @@ st_res_show = "نوع سوال: {} \n نام شهرها: {} \n تاریخ: {} \n
 
 def echo(update, context):
     """on text message"""
-    res = bot.AIBOT(update.message.text)
-    res_str = st_res_show.format(type_dict[res["type"]], res["city"], res["date"],
+    res, generated_sentence = bot.AIBOT(update.message.text)
+    res_str = st_res_show.format(type_dict[res["type"][0]], res["city"], res["date"],
                                  res["time"], res["religious_time"], res["calendar_type"], res["event"], res["result"])
 
     keyboard = [[
@@ -78,6 +78,7 @@ def echo(update, context):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     update.message.reply_text(res_str, reply_markup=reply_markup)
+    update.message.reply_text(generated_sentence)
     file_name = "userID{}messageID{}".format(
         update.message.chat.username, update.message.message_id)
     with open("collect/{}.txt".format(file_name), "w") as f_res:
@@ -92,6 +93,39 @@ def echo(update, context):
     #                    bot.ner_config, question)
     # pd.DataFrame({"tokens": t, "labels": l}).to_csv(
     #     "ner_labelling/" + file_name + ".csv")
+
+
+def transcribe_voice(update, context):
+    duration = context.message.voice.duration
+    logger.info('transcribe_voice. Message duration: '+duration)
+
+    # Fetch voice message
+    voice = update.getFile(context.message.voice.file_id)
+
+    # Transcode the voice message from audio/x-opus+ogg to audio/x-wav
+    # One should use a unique in-memory file, but I went for a quick solution for demo purposes
+    ft.transcode(voice.download('file.ogg'), 'wav')  # file.wav
+    res, response, question, generated_sentence = bot.AIBOT_Modified(
+        "file.wav")
+    res_str = st_res_show.format(type_dict[res["type"][0]], res["city"], res["date"],
+                                 res["time"], res["religious_time"], res["calendar_type"], res["event"], res["result"])
+
+    keyboard = [[
+        InlineKeyboardButton("👍", callback_data='positive'),
+        InlineKeyboardButton("👎", callback_data='negative'),
+    ]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    update.message.reply_text(res_str, reply_markup=reply_markup)
+    update.message.reply_text(
+        "پرسش شما:\n{}\nپاسخ تولید شده:\n{}".format(question, generated_sentence))
+    with open("collect/{}.txt".format(file_name), "w") as f_res:
+        print(question, file=f_res)
+        print("\n", file=f_res)
+        print(res_str, file=f_res)
+        print("\n", file=f_res)
+        print(res, file=f_res)
+        print("\n\n\n", file=f_res)
 
 
 def help(update, context):
@@ -166,6 +200,7 @@ def main():
 
     # on noncommand i.e message - echo the message on Telegram
     dp.add_handler(MessageHandler(Filters.text, echo))
+    dp.add_handler(MessageHandler(Filters.voice, transcribe_voice))
 
     # log all errors
     dp.add_error_handler(error)

@@ -56,6 +56,16 @@ def eng_num(stfa):
     return sten
 
 
+def arabic_num(sten):
+    stfa = ""
+    for c in sten:
+        if c in tr_engnum_arabicnum.keys():
+            sten += tr_engnum_arabicnum[c]
+        else:
+            sten += c
+    return sten
+
+
 def convertNum2str(num):
     if num == 0:
         return num_to_perstr[0]
@@ -588,7 +598,7 @@ def get_aweek_dayset(today, val):
         saturday = today + datetime.timedelta(-today_week)
     else:
         saturday = today + \
-            datetime.timedelta(w_ * 7 - w_ * (today_week))
+            datetime.timedelta(w_ * 7 - abs(w_) * (today_week))
     res = []
     for i in range(7):
         res.append(saturday + datetime.timedelta(i))
@@ -596,7 +606,7 @@ def get_aweek_dayset(today, val):
     return res
 
 
-def day_exporter(st, today):
+def day_exporter(st, today, no_period_return=False):
     # try weeks days:
     d_d = []
     for l in weeks_day_dict.keys():
@@ -623,7 +633,7 @@ def day_exporter(st, today):
             day = today + datetime.timedelta(week_val - today_week)
         else:
             day = today + \
-                datetime.timedelta(w_ * 7 - w_ * (today_week - week_val))
+                datetime.timedelta(w_ * 7 - abs(w_) * (today_week - week_val))
         return day, True
 
     # try day literals
@@ -633,7 +643,7 @@ def day_exporter(st, today):
             d_d.append(l)
     if d_d:
         val = day_literals[d_d[-1]]
-        if isinstance(val, complex):
+        if isinstance(val, complex) and not no_period_return:
             match_liter = st.find(d_d[-1])
             b_match_liter = st[:match_liter + len(d_d[-1]) + 1]
             n = re.findall("\d+\s+{}".format(d_d[-1]), b_match_liter)
@@ -647,7 +657,7 @@ def day_exporter(st, today):
                         for i in range(1, n + 1):
                             day.append(today + datetime.timedelta(i))
                     except Exception:
-                        day = datetime.timedelta(val.real) + today
+                        day = datetime.timedelta(val.imag) + today
                 else:
                     try:
                         # writed numbers
@@ -661,10 +671,12 @@ def day_exporter(st, today):
                             for i in range(1, n + 1):
                                 day.append(today + datetime.timedelta(i))
                         else:
-                            day = today + datetime.timedelta(val.real)
+                            day = today + datetime.timedelta(val.imag)
                     except Exception:
-                        day = today + datetime.datetime.timedelta(val.real)
+                        day = today + datetime.timedelta(val.imag)
             return day, True
+        if isinstance(val, complex):
+            val = val.imag
         match_liter = st.find(d_d[-1])
         b_match_liter = st[:match_liter + len(d_d[-1]) + 1]
         n = re.findall("\d+\s+{}".format(d_d[-1]), b_match_liter)
@@ -687,7 +699,7 @@ def day_exporter(st, today):
                 else:
                     day = today + datetime.timedelta(val)
             except Exception:
-                day = today + datetime.datetime.timedelta(val)
+                day = today + datetime.timedelta(val)
         return day, True
     # try raw numbers
     day = re.findall(" \d{2} ", st)
@@ -723,15 +735,15 @@ def day_exporter(st, today):
 def month_matched(st_space, month_place, today, calender_type=0):
     day_is_none = False
     year_is_none = False
-    day, _ = day_exporter(st_space[:month_place], today)
+    day, _ = day_exporter(st_space[:month_place], today, True)
     if _:
         day = day.day
     if not day:
-        day, _ = day_exporter(st_space[month_place:], today)
+        day, _ = day_exporter(st_space[month_place:], today, True)
         if _:
             day = day.day
     if not day:
-        day, _ = day_exporter(st_space, today)
+        day, _ = day_exporter(st_space, today, True)
         if _:
             day = day.day
     if not day:
@@ -748,7 +760,7 @@ def month_matched(st_space, month_place, today, calender_type=0):
     return (day, year, day_is_none, year_is_none)
 
 
-def export_date_single(st_arr, today_list, calender_type_is_found, calender_type):
+def export_date_single(st_arr, today_list, calender_type_is_found, calender_type, no_period_return=False):
     today = today_list[calender_type]
     is_day_none = False
     is_month_none = False
@@ -860,7 +872,7 @@ def export_date_single(st_arr, today_list, calender_type_is_found, calender_type
             pass
 
     # try day literals
-    day, is_day_literal = day_exporter(st, today_list[1])
+    day, is_day_literal = day_exporter(st, today_list[1], no_period_return)
     if day and is_day_literal:
         d_ = day
         is_month_none = True
@@ -896,7 +908,7 @@ def export_date_single(st_arr, today_list, calender_type_is_found, calender_type
     return None, (is_day_none, is_month_none, is_year_none)
 
 
-def export_date(question, tokens, labels):
+def export_date(question, tokens, labels, no_period_return=False):
     labels = np.array(labels)
     b_date = np.where(labels == "B_DAT")[0]
     i_date = np.where(labels == "I_DAT")[0]
@@ -926,12 +938,13 @@ def export_date(question, tokens, labels):
     if n == 0:
         st_arr = word_tokenize(question)
         d_single = export_date_single(
-            st_arr, today_list, calender_type_is_found, calender_type)
+            st_arr, today_list, calender_type_is_found, calender_type, no_period_return)
         if d_single[0] != None:
             if isinstance(d_single[0], list):
                 dat = []
                 for eds in d_single[0]:
                     dat.append((eds, d_single[1]))
+                return dat
             return [d_single]
         else:
             return [check_event(question, tokens, labels, today_gregorian, today_hijri, today_jalali, calender_type)]
@@ -950,16 +963,18 @@ def export_date(question, tokens, labels):
                 st_arr.append(tokens[int(t)])
             texts_date.append(" ".join(st_arr))
             eds = export_date_single(st_arr, today_list,
-                                     calender_type_is_found, calender_type)
+                                     calender_type_is_found, calender_type, no_period_return)
             if isinstance(eds[0], list):
-                for e in eds:
-                    d_.append((eds[0], eds[1]))
+                for e in eds[0]:
+                    d_.append((e, eds[1]))
             else:
                 d_.append(eds)
         for i, d in enumerate(d_):
             if d[0] == None:
-                d_[i] = exact_check_event(texts_date[i], today_gregorian,
-                                          today_hijri, today_jalali, calender_type)
+                if len(texts_date) == len(d_):
+                    d_[i] = exact_check_event(texts_date[i], today_gregorian,
+                                              today_hijri, today_jalali, calender_type)
+
             # if d_[i] == None:
             #     d_[i] = check_event(question, tokens, labels, today_gregorian,
             #                         today_hijri, today_jalali, calender_type)
@@ -979,7 +994,7 @@ def export_date(question, tokens, labels):
             st_arr.append(tokens[int(t)])
 
         d_ = export_date_single(
-            st_arr, today_list, calender_type_is_found, calender_type)
+            st_arr, today_list, calender_type_is_found, calender_type, no_period_return)
         if isinstance(d_[0], list):
             dates = []
             for dat in d_[0]:
@@ -991,7 +1006,13 @@ def export_date(question, tokens, labels):
 
         if d_[0] == None or d_[1][0] or d_[1][1] or d_[1][2]:
             d_ = export_date_single(word_tokenize(
-                question), today_list, calender_type_is_found, calender_type)
+                question), today_list, calender_type_is_found, calender_type, no_period_return)
+            if isinstance(d_[0], list):
+                dates = []
+                for dat in d_[0]:
+                    dates.append((dat, d_[1]))
+                return dates
+
         if d_[0] == None:
             d_ = check_event(question, tokens, labels, today_gregorian,
                              today_hijri, today_jalali, calender_type)

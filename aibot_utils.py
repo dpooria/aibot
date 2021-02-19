@@ -3,6 +3,7 @@ import hazm
 import re
 from cleantext import clean
 import numpy as np
+from numpy.lib.function_base import append
 import tensorflow as tf
 import pandas as pd
 import os
@@ -191,11 +192,16 @@ def location_handler(question, tokens, labels):
             l_inf = get_city_info(l)
             problem = False
             if not l_inf:
-                problem = True
+                if l in ["تهرون", "ترون"]:
+                    loc[i] = "تهران"
+                elif l in ["گم"]:
+                    loc[i] = "قم"
+                elif l in ["اصفان", "اصفون"]:
+                    loc[i] = "اصفهان"
+                else:
+                    problem = True
             problem_list.append([i, problem])
         w_t = np.array(hazm.word_tokenize(question))
-        # bloc = np.where(labels == "B-location")[0] - 1
-        # iloc = np.where(labels == "I-location")[0] - 1
         bloc = np.where(labels == "B_LOC")[0] - 1
         iloc = np.where(labels == "I_LOC")[0] - 1
         if len(bloc) >= len(problem_list):
@@ -218,20 +224,41 @@ def mix_tdl(times, dates, locations):
     l = len(locations)
     if t == 1 and l == 1 and d == 1:
         return [[times[-1], dates[-1], locations[-1]]]
-    elif t == 2 and l == 1 and d == 1:
-        return [[times[0], dates[-1], locations[-1]], [times[-1], dates[-1], locations[-1]]]
-    elif t == 1 and l == 1 and d == 2:
-        return [[times[-1], dates[0], locations[-1]], [times[-1], dates[-1], locations[-1]]]
-    elif t == 1 and l == 2 and d == 1:
-        return [[times[-1], dates[-1], locations[0]], [times[-1], dates[-1], locations[-1]]]
-    elif t == 2 and l == 1 and d == 2:
-        return [[times[0], dates[0], locations[-1]], [times[-1], dates[-1], locations[-1]]]
-    elif t == 2 and l == 2 and d == 1:
-        return [[times[0], dates[-1], locations[0]], [times[-1], dates[-1], locations[-1]]]
-    elif t == 1 and l == 2 and d == 2:
-        return [[times[-1], dates[0], locations[0]], [times[-1], dates[-1], locations[-1]]]
-    elif t == 2 and l == 2 and d == 2:
-        return [[times[0], dates[0], locations[0]], [times[-1], dates[-1], locations[-1]]]
+    elif t >= 2 and l == 1 and d == 1:
+        mixture = []
+        for tim in times:
+            mixture.append([tim, dates[-1], locations[-1]])
+        return mixture
+    elif t == 1 and l == 1 and d >= 2:
+        mixture = []
+        for dat in dates:
+            mixture.append([times[-1], dat, locations[-1]])
+        return mixture
+    elif t == 1 and l >= 2 and d == 1:
+        mixture = []
+        for lc in locations:
+            mixture.append([times[-1], dates[-1], lc])
+        return mixture
+    elif t == d and l == 1:
+        mixture = []
+        for dat, tim in zip(dates, times):
+            mixture.append([tim, dat, locations[-1]])
+        return mixture
+    elif t == l and d == 1:
+        mixture = []
+        for tim, lc in zip(times, locations):
+            mixture.append([tim, dates[-1], lc])
+        return mixture
+    elif t == 1 and l == d:
+        mixture = []
+        for dat, lc in zip(dates, locations):
+            mixture.append([times[-1], dat, lc])
+        return mixture
+    elif t == l and l == d:
+        mixture = []
+        for i in range(t):
+            mixture.append([times[i], dates[i], locations[i]])
+        return mixture
     else:
         return None
 
@@ -240,3 +267,32 @@ def unique_without_sort(arr):
     arr = list(np.array(arr).flatten())
     indexes = np.unique(arr, return_index=True)[1]
     return [arr[index] for index in sorted(indexes)]
+
+
+def concatenate_bi(tokens, labels, b_label, i_label):
+    nptokens = np.array(tokens)
+    if not isinstance(labels, np.ndarray):
+        labels = np.array(labels)
+    bs_ = np.where(labels == b_label)[0]
+    is_ = np.where(labels == i_label)[0]
+    if len(bs_) == 0 and len(is_) == 0:
+        return []
+    if len(bs_) == 0 and len(is_) != 0:
+        return [cleaning(" ".join(list(nptokens[is_])))]
+    if len(bs_) == 1:
+        return [cleaning(" ".join(list(nptokens[np.r_[bs_, is_]])))]
+    if len(is_) == 0:
+        return nptokens[bs_]
+    n = len(bs_)
+    texts_ = []
+    for i in range(n):
+        st_arr = []
+        if i < n - 1:
+            ida = is_[np.where(
+                (is_ > bs_[i]) & (is_ < bs_[i + 1]))[0]]
+        else:
+            ida = is_[np.where(is_ > bs_[i])[0]]
+        for t in np.r_[bs_[i], ida]:
+            st_arr.append(tokens[int(t)])
+        texts_.append(" ".join(st_arr))
+    return texts_
