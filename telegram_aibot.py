@@ -97,9 +97,6 @@ def echo(update, context):
 
 
 def transcribe_voice(update, context):
-    duration = update.message.voice.duration
-    logger.info('transcribe_voice. Message duration: {}'.format(duration))
-
     voice = context.bot.getFile(update.message.voice.file_id)
 
     file_name = "userID{}messageID{}".format(
@@ -163,7 +160,9 @@ def help(update, context):
         -اذان صبح به افق تهران چه موقع است
         -زمان طلوع آفتاب در اصفهان را بگو
         -نیمه شب شرعی پس فردا شب در مشهد چه زمانی است
-        -فاصله بین اذان مغرب و غروب آفتاب امروز در تبریز چقدر است"""
+        -فاصله بین اذان مغرب و غروب آفتاب امروز در تبریز چقدر است
+        ***همچنین سوالات شما می‌تواند به صورت صوتی باشد***
+        """
     update.message.reply_text(helpText)
 
 
