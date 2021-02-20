@@ -103,9 +103,10 @@ def transcribe_voice(update, context):
         update.message.chat.username, update.message.message_id)
 
     ft.transcode(voice.download(
-        'voice/{}.ogg'.format(file_name)), 'wav', output_folder="voice")  # file.wav
+        'voice/temp.ogg', 'wav', output_folder="voice"))  # file.wav
+
     res, response, question, generated_sentence = bot.AIBOT_Modified(
-        "voice/{}.wav".format(file_name))
+        "voice/temp.wav")
     res_str = st_res_show.format(type_dict[res["type"][0]], res["city"], res["date"],
                                  res["time"], res["religious_time"], res["calendar_type"], res["event"], res["result"])
 
@@ -119,14 +120,20 @@ def transcribe_voice(update, context):
     update.message.reply_text(
         "پرسش شما:\n{}\nپاسخ تولید شده:\n{}".format(question, generated_sentence))
 
-    with open("voice/{}res.wav".format(file_name), mode='wb') as f:
+    with open("voice/temp.wav".format(file_name), mode='wb') as f:
         f.write(response.content)
 
-    ft.transcode("voice/{}res.wav".format(file_name),
+    # ft.transcode("voice/{}res.wav".format(file_name),
+    #              "ogg", output_folder="voice")
+
+    ft.transcode("voice/temp.wav".format(file_name),
                  "ogg", output_folder="voice")
 
+    # context.bot.send_audio(update.message.chat_id, audio=open(
+    #     "voice/{}res.ogg".format(file_name), "rb"))
+
     context.bot.send_audio(update.message.chat_id, audio=open(
-        "voice/{}res.ogg".format(file_name), "rb"))
+        "voice/temp.ogg".format(file_name), "rb"))
 
     with open("collect/{}.txt".format(file_name), "w") as f_res:
         print(question, file=f_res)
@@ -139,13 +146,13 @@ def transcribe_voice(update, context):
 
 def help(update, context):
     """on help"""
-    helpText = """سوال‌های شما باید به صورت جمله کامل و در مورد یکی از موضوع‌های آب و هوا، تقویم، ساعت و اوقات شرعی باشند؛ 
+    helpText = """سوال‌های شما باید به صورت جمله کامل و در مورد یکی از موضوع‌های آب و هوا، تقویم، ساعت و اوقات شرعی باشند؛
         نمونه‌ای از سوالات:
         *آب و هوا
         -هوای تهران در اول بهمن ماه ساعت ۸ شب چند درجه است
         -دمای هوای اصفهان الان چقدر است؟
         -وضعیت هوای مشهد فردا ساعت ۱۱ چطور است؟
-        -امروز تبریز در چه ساعتی سردتر است 
+        -امروز تبریز در چه ساعتی سردتر است
         -اختلاف دمای تهران و اصفهان در موقع اذان ظهر چه قدر است؟
         *تقویم
         -امروز چه مناسبتی وجود دارد

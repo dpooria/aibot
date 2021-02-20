@@ -58,7 +58,7 @@ class BOT:
 
         if type_pred == "-1":
             answer["type"] = "-1"
-            return answer
+            return answer, ""
         tokens, labels = ner_question(
             self.ner_model, self.ner_tokenizer, self.ner_config, Question)
         if type_pred == "1":
