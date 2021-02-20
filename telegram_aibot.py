@@ -103,7 +103,7 @@ def transcribe_voice(update, context):
         update.message.chat.username, update.message.message_id)
 
     ft.transcode(voice.download(
-        'voice/temp.ogg', 'wav', output_folder="voice"))  # file.wav
+        'voice/temp.ogg'), 'wav', output_folder="voice")  # file.wav
 
     res, response, question, generated_sentence = bot.AIBOT_Modified(
         "voice/temp.wav")
@@ -133,7 +133,7 @@ def transcribe_voice(update, context):
     #     "voice/{}res.ogg".format(file_name), "rb"))
 
     context.bot.send_audio(update.message.chat_id, audio=open(
-        "voice/temp.ogg".format(file_name), "rb"))
+        "voice/temp.ogg", "rb"))
 
     with open("collect/{}.txt".format(file_name), "w") as f_res:
         print(question, file=f_res)
