@@ -7,7 +7,8 @@ from aibot_date import gregorian_to_jalali
 from vocab import shamsimonthes, miladimonthes, qamariMonthes, num2fa_gen
 
 
-tr_jalali_month = {v: k for k, v in shamsimonthes.items()}
+tr_jalali_month = {1: "فروردین", 2: "اردیبهشت", 3: "خرداد", 4: "تیر", 5: "مرداد",
+                   6: "شهریور", 7: "مهر", 8: "آبان", 9: "آذر", 10: "دی", 11: "بهمن", 12: "اسفند"}
 tr_gregorian_month = {v: k for k, v in miladimonthes.items()}
 tr_hijri_month = {v: k for k, v in qamariMonthes.items()}
 

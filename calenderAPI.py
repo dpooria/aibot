@@ -249,6 +249,7 @@ class Calender:
                         tr_single_date(date_list[0]))
                 return answer, generated_sentence
         if events:
+            print(date_list[0])
             j = gregorian_to_jalali(
                 date_list[0].year, date_list[0].month, date_list[0].day)
             answer["result"].append(format_jalali_date(j))

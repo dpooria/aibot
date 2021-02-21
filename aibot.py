@@ -1,25 +1,31 @@
 
+from aryana import *
+# from deepmine import Deepmine
+# from nevisa import nevisa
+
+from speechRec import google
+
 from transformers import TFBertForSequenceClassification, TFAutoModelForTokenClassification
 from transformers import BertTokenizer, AutoTokenizer, AutoConfig
-from speechRec import google
-from aryana import *
+
 from weatherAPI import Weather
 from adhanAPI import Adhan
 from timeAPI import Time
 from calenderAPI import Calender
 from aibot_utils import cleaning, classify_question, ner_question
-import os
+
 
 TR_ID_AIBOTID = {0: "1", 1: "2", 4: "3", 3: "4", 2: "-1"}
-# CLASSIFIER_PATH = "/var/www/AIBot/media/codes/user_dpooria75@gmail.com/classifier"
-# PARSBERTNER_PATH = "/var/www/AIBot/media/parsbert"
-CLASSIFIER_PATH = "../models/classifier"
-PARSBERTNER_PATH = "../models/ner_model"
+# # CLASSIFIER_PATH = "/var/www/AIBot/media/codes/user_dpooria75@gmail.com/classifier"
+# # PARSBERTNER_PATH = "/var/www/AIBot/media/parsbert"
+# CLASSIFIER_PATH = "../models/classifier"
+# PARSBERTNER_PATH = "../models/ner_model"
+CLASSIFIER_PATH = "/var/www/AIBot/media/codes/user_dpooria75@gmail.com/classifier"
+PARSBERTNER_PATH = "/var/www/AIBot/media/codes/user_dpooria75@gmail.com/ner_model"
 
 
 class BOT:
     def __init__(self):
-        os.environ["TOKENIZERS_PARALLELISM"] = "false"
         self.modified = False
         # load models
         self.classifier_tokenizer = BertTokenizer.from_pretrained(
@@ -37,6 +43,8 @@ class BOT:
         self.time_api = Time()
         self.calender_api = Calender()
 
+        # self.deepm = Deepmine()
+
     def is_modified(self):
         return self.modified
 
@@ -49,42 +57,7 @@ class BOT:
     : return : A dictionary containing the type of question, corresponding arguments, api_url and result.
     '''
 
-    def AIBOT(self, Question):
-        answer = {'type': ['0'], 'city': [], 'date': [],
-                  'time': [], 'religious_time': [], 'calendar_type': [], 'event': [], 'api_url': '', 'result': []}
-        Question = cleaning(Question)
-        type_pred = TR_ID_AIBOTID[classify_question(
-            self.classifier_model, self.classifier_tokenizer, Question)]
-
-        if type_pred == "-1":
-            answer["type"] = "-1"
-            return answer, ""
-        tokens, labels = ner_question(
-            self.ner_model, self.ner_tokenizer, self.ner_config, Question)
-        if type_pred == "1":
-            return self.weather_api.get_answer(Question, tokens, labels)
-        elif type_pred == "2":
-            res = self.adhan_api.get_answer(Question, tokens, labels)
-            if res:
-                return res
-            else:
-                return self.weather_api.get_answer(Question, tokens, labels)
-        elif type_pred == "3":
-            return self.time_api.get_answer(Question, tokens, labels)
-        else:
-            return self.calender_api.get_answer(Question, tokens, labels)
-
-    '''
-    This method takes an string as input, the string contains the address of a wav file.
-    You can either use your own speech recognition or nevisa to extract the question from that file.
-    Also you should call ariana to create an audio file as output.
-    
-    :Param Address : an string containing the the address of a wav file.
-
-    : return : A dictionary containing the type of question, corresponding arguments, api_url and result.
-    '''
-
-    def AIBOT_Modified(self, Address):
+    def aibot(self, Address):
         # self.deepm = Deepmine()
         answer = {'type': ['0'], 'city': [], 'date': [],
                   'time': [], 'religious_time': [], 'calendar_type': [], 'event': [], 'api_url': '', 'result': []}
@@ -101,6 +74,7 @@ class BOT:
         text = google(Address)
         Question = text
         Question = cleaning(Question)
+        # print(Question)
         type_pred = TR_ID_AIBOTID[classify_question(
             self.classifier_model, self.classifier_tokenizer, Question)]
 
@@ -125,6 +99,25 @@ class BOT:
             answer, generated_sentence = self.calender_api.get_answer(
                 Question, tokens, labels)
 
+        # print(generated_sentence)
         response = aryana(generated_sentence)
 
-        return answer, response, Question, generated_sentence
+        return answer, response
+
+    '''
+    This method takes an string as input, the string contains the address of a wav file.
+    You can either use your own speech recognition or nevisa to extract the question from that file.
+    Also you should call ariana to create an audio file as output.
+    
+    :Param Address : an string containing the the address of a wav file.
+
+    : return : A dictionary containing the type of question, corresponding arguments, api_url and result.
+    '''
+
+    def AIBOT_Modified(self, Address):
+        answer = {'type': '0', 'city': [], 'date': [],
+                  'time': [], 'religous_time': [], 'calendar_type': [], 'event': [], 'api_url': '', 'result': ''}
+        '''
+        You should implement your code right here.
+        '''
+        return answer

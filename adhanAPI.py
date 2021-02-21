@@ -5,8 +5,6 @@ import datetime
 import requests
 import numpy as np
 import pandas as pd
-from transformers.utils.dummy_pt_objects import ElectraForMaskedLM
-
 from aibot_date import export_date, format_jalali_date, gregorian_to_jalali
 from aibot_utils import location_handler, get_city_info, unique_without_sort, cleaning
 from vocab import hours_left_asked, adhan_logical_question, tr_adhan_names, weather_logical

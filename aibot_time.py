@@ -32,7 +32,7 @@ def fix_hour_ampm(st, hour):
     return hour
 
 
-def hour_min_exporter(st):
+def hour_min_exporter(st, force_return=False):
     # try ساعت + num
     mtch = re.findall("ساعت \d+", st)
     if mtch:
@@ -188,10 +188,11 @@ def hour_min_exporter(st):
         except Exception:
             pass
     # let's just return a number as hour:
-    mtch = re.findall("\d+", st)
-    if mtch:
-        hour = int(mtch[0])
-        return fix_hour_ampm(st, hour), 0
+    if force_return:
+        mtch = re.findall("\d+", st)
+        if mtch:
+            hour = int(mtch[0])
+            return fix_hour_ampm(st, hour), 0
     return None, None
 
 
@@ -266,7 +267,7 @@ def adhan_handler(time_list, tokens, labels, question):
             return res, url, adhan_names
 
 
-def export_time_single(st_arr, st=None):
+def export_time_single(st_arr, st=None, force_return=False):
     not_st = False
     if not st:
         st = cleaning("".join(st_arr).replace("-", ":").replace("/",
@@ -288,7 +289,7 @@ def export_time_single(st_arr, st=None):
             pass
     if not_st:
         st = cleaning(" ".join(st_arr))
-    hour, minute = hour_min_exporter(st)
+    hour, minute = hour_min_exporter(st, force_return=force_return)
     if hour == None:
         # hour = datetime.datetime.now().hour
         return None
@@ -329,7 +330,7 @@ def export_time(question, tokens, labels):
             for t in np.r_[b_time[i], ida]:
                 st_arr.append(tokens[int(t)])
             time_texts.append(" ".join(st_arr))
-            t_.append(export_time_single(st_arr))
+            t_.append(export_time_single(st_arr, force_return=True))
         is_adhan_needed = False
         new_t = copy(t_)
         for i, t in enumerate(t_):
@@ -347,7 +348,7 @@ def export_time(question, tokens, labels):
         st_arr = []
         for t in np.r_[b_time, i_time]:
             st_arr.append(tokens[int(t)])
-        t_ = export_time_single(st_arr)
+        t_ = export_time_single(st_arr, force_return=True)
         if t_ == None:
             t_ = export_time_single(word_tokenize(question), question)
         if t_ == None:
