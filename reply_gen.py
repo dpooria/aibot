@@ -75,19 +75,16 @@ def tr_date(date_list, tokens, labels):
 
 def tr_single_time(tim):
     now_time = datetime.datetime.now().time()
-    if tim.hour == now_time.hour and tim.minute == now_time.minute:
-        return "الآن"
-    else:
-        if tim.hour != 0:
-            if tim.minute != 0:
-                return "ساعت {} و {} دقیقه".format(tim.hour, tim.minute)
-            else:
-                return "ساعت {}".format(tim.hour)
+    if tim.hour != 0:
+        if tim.minute != 0:
+            return "ساعت {} و {} دقیقه".format(tim.hour, tim.minute)
         else:
-            if tim.minute != 0:
-                return "ساعت ۱۲ و {} دقیقه‌ی بامداد".format(tim.minute)
-            else:
-                return "۱۲ بامداد"
+            return "ساعت {}".format(tim.hour)
+    else:
+        if tim.minute != 0:
+            return "ساعت ۱۲ و {} دقیقه‌ی بامداد".format(tim.minute)
+        else:
+            return "۱۲ بامداد"
 
 
 def tr_time(time_iso, tokens, labels):
@@ -100,6 +97,3 @@ def tr_time(time_iso, tokens, labels):
         t_words = concatenate_bi(tokens, labels, "B_TIM", "I_TIM")
     return t_words
 
-
-# def weather_minmax_question(question, tokens, labels, result, result_typeو, logicals, date_list, time_iso):
-#     pass

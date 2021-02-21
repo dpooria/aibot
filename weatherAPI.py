@@ -1,7 +1,7 @@
 
 
-from aibot_utils import location_handler, unique_without_sort, cleaning
 import requests
+from translate import translator
 import numpy as np
 import pandas as pd
 import datetime
@@ -10,7 +10,7 @@ from aibot_time import export_time
 from adhanAPI import Adhan
 from copy import copy
 from vocab import (
-    weather_description_asked,
+    USER_CITY, weather_description_asked,
     weather_temperature_asked,
     tr_weather_description,
     day_asked,
@@ -18,6 +18,7 @@ from vocab import (
     weather_logical,
     temp_asked)
 from reply_gen import tr_date, tr_time, tr_single_date, tr_single_time
+from aibot_utils import location_handler, unique_without_sort, cleaning
 
 
 # Class to handle weather api
@@ -25,15 +26,18 @@ class Weather:
     def __init__(self):
         self.appid = "ee41144a3fc05599947c9ffe87e12bd4"
         self.openweatherapi_5dayforecast_url = "http://api.openweathermap.org/data/2.5/forecast?q={}&APPID=ee41144a3fc05599947c9ffe87e12bd4&units=metric&lang=fa"
+        self.eng_openweatherapi = "http://api.openweathermap.org/data/2.5/forecast?q={}&APPID=ee41144a3fc05599947c9ffe87e12bd4&units=metric"
         self.adhan = Adhan()
 
     def get_city_5dayforecast_weather(self, cityName):
         try:
             data = requests.get(
                 self.openweatherapi_5dayforecast_url.format(cityName)).json()
+            print("allalal")
         except:
             return pd.DataFrame()
         if data["cod"] == "200":
+            print("what??")
             weathers = []
             for w_list in data["list"]:
                 tmp = w_list["main"]
@@ -44,7 +48,31 @@ class Weather:
                 weathers.append(tmp)
             return pd.DataFrame(weathers)
         else:
-            return pd.DataFrame()
+            try:
+                print("fine")
+                cityname_eng = translator("fa", "en", cityName)[0][0][0]
+                print("ok:{}".format(cityname_eng))
+                print("lalalllaal")
+                print(self.eng_openweatherapi)
+                print(self.eng_openweatherapi.format(cityname_eng))
+                data = requests.get(
+                    self.eng_openweatherapi.format(cityname_eng)).json()
+                print("plps")
+                if data["cod"] == "200":
+                    print("allright")
+                    weathers = []
+                    for w_list in data["list"]:
+                        tmp = w_list["main"]
+                        tmp["dt_txt"] = datetime.datetime.fromisoformat(
+                            w_list["dt_txt"])
+                        tmp["description"] = w_list["weather"][0]["description"]
+                        tmp["main"] = w_list["weather"][0]["main"]
+                        weathers.append(tmp)
+                    return pd.DataFrame(weathers)
+                else:
+                    return pd.DataFrame()
+            except:
+                return pd.DataFrame()
 
     def getCityWeather(self, city, date):
         today = datetime.datetime.today()
@@ -75,7 +103,7 @@ class Weather:
         generated_sentence = ""
 
         location = unique_without_sort(
-            location_handler(question, tokens, labels))
+            location_handler(question, tokens, labels, check_validation=False))
         date_list = []
         date_list_jalali = []
         exportdate = export_date(question, tokens, labels)
@@ -125,14 +153,8 @@ class Weather:
 
         l_n = len(location)
         # see if the cities are valid:
-        if l_n != 0:
-            for l in location:
-                cinfo = self.get_city_info(l)
-                if cinfo == None:
-                    location.remove(l)
-        l_n = len(location)
         if l_n == 0:
-            location = ["تهران"]
+            location = [USER_CITY]
             l_n = 1
 
         api_url = []
@@ -337,6 +359,7 @@ class Weather:
     @ staticmethod
     def get_city_info(cityName):
         openweatherapi_5dayforecast_url = "http://api.openweathermap.org/data/2.5/forecast?q={}&APPID=ee41144a3fc05599947c9ffe87e12bd4&units=metric&lang=fa&cnt=1"
+        eng_openweatherapi = "http://api.openweathermap.org/data/2.5/forecast?q={}&APPID=ee41144a3fc05599947c9ffe87e12bd4&units=metric&cnt=1"
         try:
             data = requests.get(
                 openweatherapi_5dayforecast_url.format(cityName)).json()
@@ -345,7 +368,16 @@ class Weather:
         if data["cod"] == "200":
             return data["city"]
         else:
-            return None
+            cityname_eng = translator("fa", "en", cityName)[0][0][0]
+            try:
+                data = requests.get(
+                    eng_openweatherapi.format(cityname_eng)).json()
+                if data["cod"] == "200":
+                    return data["city"]
+                else:
+                    return None
+            except Exception:
+                return None
 
     @ staticmethod
     def check_logical(tokens):

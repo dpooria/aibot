@@ -8,6 +8,7 @@ import tensorflow as tf
 import pandas as pd
 import os
 import requests
+from translate.translator import translator
 from vocab import USER_CITY, loc_literals
 
 abs_path = os.path.dirname(os.path.abspath(__file__))
@@ -113,6 +114,7 @@ df_province = pd.read_csv(os.path.join(abs_path, "database/provinces.csv"))
 
 def get_city_info(cityName):
     openweatherapi_5dayforecast_url = "http://api.openweathermap.org/data/2.5/forecast?q={}&APPID=ee41144a3fc05599947c9ffe87e12bd4&units=metric&lang=fa&cnt=1"
+    eng_openweatherapi = "http://api.openweathermap.org/data/2.5/forecast?q={}&APPID=ee41144a3fc05599947c9ffe87e12bd4&units=metric&cnt=1"
     try:
         data = requests.get(
             openweatherapi_5dayforecast_url.format(cityName)).json()
@@ -121,7 +123,18 @@ def get_city_info(cityName):
     if data["cod"] == "200":
         return data["city"]
     else:
-        return None
+        try:
+            cityname_eng = translator("fa", "en", cityName)
+            cityname_eng = cityname_eng[0][0][0]
+            data = requests.get(
+                eng_openweatherapi.format(cityname_eng)).json()
+            if data["cod"] == "200":
+                print("ok")
+                return data["city"]
+            else:
+                return None
+        except Exception:
+            return None
 
 
 def location_fix(question, location):
@@ -184,37 +197,39 @@ def location_(question, tokens, labels):
         return locs
 
 
-def location_handler(question, tokens, labels):
+def location_handler(question, tokens, labels, check_validation=True):
     loc = location_(question, tokens, labels)
     if loc:
-        problem_list = []
-        for i, l in enumerate(loc):
-            l_inf = get_city_info(l)
-            problem = False
-            if not l_inf:
-                if l in ["تهرون", "ترون"]:
-                    loc[i] = "تهران"
-                elif l in ["گم"]:
-                    loc[i] = "قم"
-                elif l in ["اصفان", "اصفون"]:
-                    loc[i] = "اصفهان"
-                else:
-                    problem = True
-            problem_list.append([i, problem])
-        w_t = np.array(hazm.word_tokenize(question))
-        bloc = np.where(labels == "B_LOC")[0] - 1
-        iloc = np.where(labels == "I_LOC")[0] - 1
-        if len(bloc) >= len(problem_list):
-            for i in range(len(problem_list)):
-                if problem_list[i][1]:
-                    if i != len(problem_list) - 1:
-                        il = iloc[(iloc > bloc[i]) & (iloc < bloc[i+1])]
+        if check_validation:
+            problem_list = []
+            for i, l in enumerate(loc):
+                l_inf = get_city_info(l)
+                problem = False
+                if not l_inf:
+                    if l in ["تهرون", "ترون"]:
+                        loc[i] = "تهران"
+                    elif l in ["گم"]:
+                        loc[i] = "قم"
+                    elif l in ["اصفان", "اصفون"]:
+                        loc[i] = "اصفهان"
                     else:
-                        il = iloc[iloc > bloc[i]]
-                    loc[problem_list[i][0]] = location_fix(
-                        question, [" ".join(w_t[np.r_[bloc[i], il]])])[0]
-    else:
-        loc = [USER_CITY]
+                        print("what the fuck man")
+                        problem = True
+                problem_list.append([i, problem])
+            w_t = np.array(hazm.word_tokenize(question))
+            bloc = np.where(labels == "B_LOC")[0] - 1
+            iloc = np.where(labels == "I_LOC")[0] - 1
+            if len(bloc) >= len(problem_list):
+                for i in range(len(problem_list)):
+                    if problem_list[i][1]:
+                        if i != len(problem_list) - 1:
+                            il = iloc[(iloc > bloc[i]) & (iloc < bloc[i+1])]
+                        else:
+                            il = iloc[iloc > bloc[i]]
+                        loc[problem_list[i][0]] = location_fix(
+                            question, [" ".join(w_t[np.r_[bloc[i], il]])])[0]
+            else:
+                loc = [USER_CITY]
     return loc
 
 
