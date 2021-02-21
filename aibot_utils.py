@@ -104,8 +104,13 @@ def ner_question(model, tokenizer, config, sentence):
     ypred = p[0].argmax(axis=-1)[0]
     labels = [id2label[pr] for pr in ypred]
     tokens = tokenizer.tokenize(sentence, add_special_tokens=True)
+    labels = np.array(labels[:len(tokens)])
 
-    return tokens, np.array(labels[:len(tokens)])
+    if len(np.where(labels == "B_DAT")[0]) == 1 and len(np.where(labels == "B_TIM")[0]) == 0 and len(np.where(labels == "I_TIM")[0]) != 0:
+        labels[labels == "I_DAT"] = "I_TIM"
+        labels[labels == "B_DAT"] = "B_TIM"
+
+    return tokens, labels
 
 
 df_capitals = pd.read_csv(os.path.join(abs_path, "database/capitals.csv"))

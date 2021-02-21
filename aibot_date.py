@@ -237,7 +237,14 @@ def exact_check_event(text, today_gregorian, today_hijri, today_jalali, calender
         for yl in year_literals.keys():
             if yl in st:
                 st = re.sub(yl, "", st)
-        st = cleaning(re.sub("\d+", "", st))
+        st = re.sub("\d+", "", st)
+        for num in perstr_to_num.keys():
+            if " " + num + " " in st:
+                st = re.sub(" " + num + " ", " ", st)
+
+        st = cleaning(st)
+        if len(st) <= 3:
+            return None, (True, True, True)
         for i, e in enumerate(df_event["event"]):
             if st in e:
                 event_list.append(df_event.iloc[i])
@@ -258,6 +265,7 @@ def exact_check_event(text, today_gregorian, today_hijri, today_jalali, calender
         return None, (True, True, True)
     year = year_exporter(
         text, today_jalali, calender_type=calender_type)
+    print("yearL", year)
     year_type = "j_d"
     if year is None:
         year = today_gregorian.year
@@ -552,7 +560,6 @@ def build_date_fromisoformat(mtch, calender_type=-1):
 
 
 def year_exporter(st, today, calender_type=0):
-
     year = re.findall("\d{4}", st)
     try:
         if year:
@@ -570,13 +577,14 @@ def year_exporter(st, today, calender_type=0):
                 probable_year_num = st[:probable_year_num]
                 pn = []
                 for w in word_tokenize(probable_year_num):
-                    if w in num_to_perstr.keys():
+                    if w in perstr_to_num.keys():
                         pn.append(w)
                 if pn:
                     try:
                         n = convertStr2num(" ".join(pn))
                         if n > 20:
                             raise Exception
+                        print("n", n)
                         return today.year + n * year_literals[year_literal_[0]]
                     except Exception:
                         pass
