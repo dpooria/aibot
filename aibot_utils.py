@@ -129,7 +129,6 @@ def get_city_info(cityName):
             data = requests.get(
                 eng_openweatherapi.format(cityname_eng)).json()
             if data["cod"] == "200":
-                print("ok")
                 return data["city"]
             else:
                 return None
@@ -213,7 +212,6 @@ def location_handler(question, tokens, labels, check_validation=True):
                     elif l in ["اصفان", "اصفون"]:
                         loc[i] = "اصفهان"
                     else:
-                        print("what the fuck man")
                         problem = True
                 problem_list.append([i, problem])
             w_t = np.array(hazm.word_tokenize(question))

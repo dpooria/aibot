@@ -3,7 +3,7 @@ from aryana import *
 # from deepmine import Deepmine
 # from nevisa import nevisa
 
-from speechRec import google
+from speechRec import speech_to_text
 
 from transformers import TFBertForSequenceClassification, TFAutoModelForTokenClassification
 from transformers import BertTokenizer, AutoTokenizer, AutoConfig
@@ -61,20 +61,12 @@ class BOT:
         # self.deepm = Deepmine()
         answer = {'type': ['0'], 'city': [], 'date': [],
                   'time': [], 'religious_time': [], 'calendar_type': [], 'event': [], 'api_url': '', 'result': []}
-        # r, Question = self.deepm.get_text(Address)
-        # if r == 0:
-        #     generated_sentence = "ارور تبدیل صوت به تکست!"
-        #     response = aryana(generated_sentence)
-        #     return answer, response
-
-        # file = open(Address, mode='rb')
-        # comment = "1130377539"
-        # text = nevisa(file, comment)
-        # print(text)
-        text = google(Address)
+        r, text = speech_to_text(Address)
+        if r == -1:
+            response = aryana("مشکل در تشخیص صوت به وجود آمد")
+            return answer, response
         Question = text
         Question = cleaning(Question)
-        # print(Question)
         type_pred = TR_ID_AIBOTID[classify_question(
             self.classifier_model, self.classifier_tokenizer, Question)]
 

@@ -2,7 +2,6 @@
 
 import ast
 import numpy as np
-from numpy.core.arrayprint import DatetimeFormat
 import pandas as pd
 from hijri_converter import convert
 import re
@@ -223,9 +222,26 @@ def jalali_to_gregorian(jy, jm, jd):
 
 def exact_check_event(text, today_gregorian, today_hijri, today_jalali, calender_type=0):
     event_list = []
+    modified_text = re.sub("\d+", "", text)
+    for ae in after_event:
+        modified_text = modified_text.replace(ae, "")
+    if not modified_text:
+        return None, (True, True, True)
+
     for i, e in enumerate(df_event["event"]):
         if e in text:
             event_list.append(df_event.iloc[i])
+
+    if not event_list and (not text in wrong_date):
+        st = text
+        for yl in year_literals.keys():
+            if yl in st:
+                st = re.sub(yl, "", st)
+        st = cleaning(re.sub("\d+", "", st))
+        for i, e in enumerate(df_event["event"]):
+            if st in e:
+                event_list.append(df_event.iloc[i])
+
     if not event_list and not (text in wrong_date):
         event_tokens = word_tokenize(text)
         n_t = []
@@ -309,40 +325,48 @@ def exact_check_event(text, today_gregorian, today_hijri, today_jalali, calender
                 y = convert.Gregorian(
                     m_d.year - dy, m_d.month, m_d.day).to_hijri().year
                 m_d = convert.Hijri(y, d[1], d[2]).to_gregorian()
-                d = datetime.datetime(m_d.year, m_d.month, m_d.day) + datetime.timedelta(1)
+                d = datetime.datetime(
+                    m_d.year, m_d.month, m_d.day) + datetime.timedelta(1)
             elif year_type == "g_d":
                 dy = m_d.year - year
                 m_d = convert.Hijri(d[0] - dy, d[1], d[2]).to_gregorian()
-                d = datetime.datetime(m_d.year, m_d.month, m_d.day) + datetime.timedelta(1)
+                d = datetime.datetime(
+                    m_d.year, m_d.month, m_d.day) + datetime.timedelta(1)
             else:  # year_type == "h_d"
                 h_d = (year, d[1], d[2])
                 m_d = convert.Hijri(h_d[0], h_d[1], h_d[2]).to_gregorian()
-                d = datetime.datetime(m_d.year, m_d.month, m_d.day) + datetime.timedelta(1)
+                d = datetime.datetime(
+                    m_d.year, m_d.month, m_d.day) + datetime.timedelta(1)
         return d, (False, False, ev["event"])
 
 
 def event_exporter(question, tokens, labels):
+    modified_question = re.sub("\d+", "", question)
+    for ae in after_event:
+        modified_question = re.sub(ae, "", modified_question)
+    if len(modified_question) <= 3:
+        return pd.DataFrame()
     event_list = []
     # try matching exactly the names of the events:
     for i, e in enumerate(df_event["event"]):
         if e in question:
             event_list.append(df_event.iloc[i])
-    if not event_list:
-        event_tokens = list(np.array(tokens)[np.where(
-            (labels == "B_DAT") | (labels == "I_DAT"))])
-        if len(event_tokens) > 0:
-            if len(event_tokens) > 1:
-                n_t = []
-                for e in event_tokens:
-                    if not e in after_event:
-                        n_t.append(e)
-                st = " ".join(n_t)
-                st = cleaning(re.sub("\d+", "", st))
-            else:
-                st = event_tokens[0]
-            for i, e in enumerate(df_event["event"]):
-                if st in e:
-                    event_list.append(df_event.iloc[i])
+    # if not event_list:
+    #     event_tokens = list(np.array(tokens)[np.where(
+    #         (labels == "B_DAT") | (labels == "I_DAT"))])
+    #     if len(event_tokens) > 0:
+    #         if len(event_tokens) > 1:
+    #             n_t = []
+    #             for e in event_tokens:
+    #                 if not e in after_event:
+    #                     n_t.append(e)
+    #             st = " ".join(n_t)
+    #             st = cleaning(re.sub("\d+", "", st))
+    #         else:
+    #             st = event_tokens[0]
+    #         for i, e in enumerate(df_event["event"]):
+    #             if st in e:
+    #                 event_list.append(df_event.iloc[i])
     if not event_list:
         # try finding event_literals
         for el in event_literals:
@@ -467,15 +491,18 @@ def check_event(question, tokens, labels, today_gregorian, today_hijri, today_ja
                 y = convert.Gregorian(
                     m_d.year - dy, m_d.month, m_d.day).to_hijri().year
                 m_d = convert.Hijri(y, d[1], d[2]).to_gregorian()
-                d = datetime.datetime(m_d.year, m_d.month, m_d.day) + datetime.timedelta(1)
+                d = datetime.datetime(
+                    m_d.year, m_d.month, m_d.day) + datetime.timedelta(1)
             elif year_type == "g_d":
                 dy = m_d.year - year
                 m_d = convert.Hijri(d[0] - dy, d[1], d[2]).to_gregorian()
-                d = datetime.datetime(m_d.year, m_d.month, m_d.day) + datetime.timedelta(1)
+                d = datetime.datetime(
+                    m_d.year, m_d.month, m_d.day) + datetime.timedelta(1)
             else:  # year_type == "h_d"
                 h_d = (year, d[1], d[2])
                 m_d = convert.Hijri(h_d[0], h_d[1], h_d[2]).to_gregorian()
-                d = datetime.datetime(m_d.year, m_d.month, m_d.day) + datetime.timedelta(1)
+                d = datetime.datetime(
+                    m_d.year, m_d.month, m_d.day) + datetime.timedelta(1)
         return d, (False, False, ev["event"])
 
 
@@ -506,7 +533,8 @@ def build_date_fromisoformat(mtch, calender_type=-1):
             d_ = datetime.datetime(year, month, day)
         elif year > 1420:
             d_ = convert.Hijri(year, month, day).to_gregorian()
-            d_ = datetime.datetime(d_.year, d_.month, d_.day) + datetime.timedelta(1)
+            d_ = datetime.datetime(
+                d_.year, d_.month, d_.day) + datetime.timedelta(1)
         else:
             d_ = jalali_to_gregorian(year, month, day)
             d_ = datetime.datetime(d_[0], d_[1], d_[2])
@@ -515,7 +543,8 @@ def build_date_fromisoformat(mtch, calender_type=-1):
         d_ = datetime.datetime(d_[0], d_[1], d_[2])
     elif calender_type == 2:
         d_ = convert.Hijri(year, month, day).to_gregorian()
-        d_ = datetime.datetime(d_.year, d_.month, d_.day) + datetime.timedelta(1)
+        d_ = datetime.datetime(d_.year, d_.month, d_.day) + \
+            datetime.timedelta(1)
     else:
         d_ = datetime.datetime(year, month, day)
 
@@ -1018,7 +1047,7 @@ def export_date(question, tokens, labels, no_period_return=False):
             d_ = exact_check_event(" ".join(st_arr), today_gregorian,
                                    today_hijri, today_jalali, calender_type)
 
-        if d_[0] == None or d_[1][0] or d_[1][1] or d_[1][2]:
+        if d_[0] == None:
             d_ = export_date_single(word_tokenize(
                 question), today_list, calender_type_is_found, calender_type, no_period_return)
             if isinstance(d_[0], list):

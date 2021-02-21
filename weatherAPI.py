@@ -33,11 +33,9 @@ class Weather:
         try:
             data = requests.get(
                 self.openweatherapi_5dayforecast_url.format(cityName)).json()
-            print("allalal")
         except:
             return pd.DataFrame()
         if data["cod"] == "200":
-            print("what??")
             weathers = []
             for w_list in data["list"]:
                 tmp = w_list["main"]
@@ -49,17 +47,10 @@ class Weather:
             return pd.DataFrame(weathers)
         else:
             try:
-                print("fine")
                 cityname_eng = translator("fa", "en", cityName)[0][0][0]
-                print("ok:{}".format(cityname_eng))
-                print("lalalllaal")
-                print(self.eng_openweatherapi)
-                print(self.eng_openweatherapi.format(cityname_eng))
                 data = requests.get(
                     self.eng_openweatherapi.format(cityname_eng)).json()
-                print("plps")
                 if data["cod"] == "200":
-                    print("allright")
                     weathers = []
                     for w_list in data["list"]:
                         tmp = w_list["main"]

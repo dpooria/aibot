@@ -4,7 +4,7 @@ from hijri_converter import convert
 from aibot_utils import concatenate_bi, cleaning
 import datetime
 from aibot_date import gregorian_to_jalali
-from vocab import shamsimonthes, miladimonthes, qamariMonthes, num2fa_gen
+from vocab import miladimonthes, qamariMonthes, num2fa_gen
 
 
 tr_jalali_month = {1: "فروردین", 2: "اردیبهشت", 3: "خرداد", 4: "تیر", 5: "مرداد",
