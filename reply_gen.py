@@ -45,7 +45,7 @@ def tr_single_date(date_, force_date=False):
 def tr_gregorian_date(date_):
     if isinstance(date_, datetime.datetime):
         date_ = date_.date()
-    month = tr_gregorian_date[date_.month]
+    month = tr_gregorian_month[date_.month]
     translation = "{} {} سال {}".format(
         num2fa_gen[date_.day], month, date_.year)
     return translation
@@ -56,7 +56,7 @@ def tr_hijri_date(date_):
         date_ = date_.date()
 
     date_h = convert.Gregorian(date_.year, date_.month, date_.day).to_hijri()
-    month = tr_gregorian_date[date_h.month]
+    month = tr_hijri_month[date_h.month]
     translation = "{} {} سال {}".format(
         num2fa_gen[date_h.day], month, date_h.year)
     return translation

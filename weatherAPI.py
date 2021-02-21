@@ -1,8 +1,5 @@
 
-from operator import ge
 
-from cleantext.clean import clean
-from numpy.lib.function_base import diff
 from aibot_utils import location_handler, unique_without_sort, cleaning
 import requests
 import numpy as np
