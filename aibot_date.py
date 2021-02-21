@@ -265,7 +265,6 @@ def exact_check_event(text, today_gregorian, today_hijri, today_jalali, calender
         return None, (True, True, True)
     year = year_exporter(
         text, today_jalali, calender_type=calender_type)
-    print("yearL", year)
     year_type = "j_d"
     if year is None:
         year = today_gregorian.year
@@ -584,7 +583,6 @@ def year_exporter(st, today, calender_type=0):
                         n = convertStr2num(" ".join(pn))
                         if n > 20:
                             raise Exception
-                        print("n", n)
                         return today.year + n * year_literals[year_literal_[0]]
                     except Exception:
                         pass
