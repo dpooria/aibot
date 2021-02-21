@@ -311,7 +311,7 @@ def exact_check_event(text, today_gregorian, today_hijri, today_jalali, calender
                 d = datetime.datetime(d[0], d[1], d[2])
             else:
                 m_d = jalali_to_gregorian(d[0], d[1], d[2])[0]
-                dy = m_d[0] - year
+                dy = m_d - year
                 m_d = jalali_to_gregorian(d[0] - dy, d[1], d[2])
                 d = datetime.datetime(m_d[0], m_d[1], m_d[2])
 
