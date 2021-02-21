@@ -505,7 +505,7 @@ def build_date_fromisoformat(mtch, calender_type=-1):
             d_ = datetime.datetime(year, month, day)
         elif year > 1420:
             d_ = convert.Hijri(year, month, day).to_gregorian()
-            d_ = datetime.datetime(d_.year, d_.month, d_.day)
+            d_ = datetime.datetime(d_.year, d_.month, d_.day) + datetime.timedelta(1)
         else:
             d_ = jalali_to_gregorian(year, month, day)
             d_ = datetime.datetime(d_[0], d_[1], d_[2])
@@ -514,7 +514,7 @@ def build_date_fromisoformat(mtch, calender_type=-1):
         d_ = datetime.datetime(d_[0], d_[1], d_[2])
     elif calender_type == 2:
         d_ = convert.Hijri(year, month, day).to_gregorian()
-        d_ = datetime.datetime(d_.year, d_.month, d_.day)
+        d_ = datetime.datetime(d_.year, d_.month, d_.day) + datetime.timedelta(1)
     else:
         d_ = datetime.datetime(year, month, day)
 
@@ -803,10 +803,14 @@ def export_date_single(st_arr, today_list, calender_type_is_found, calender_type
                 year = today.year
             if calender_type == 0:
                 year, month, day = jalali_to_gregorian(year, month, day)
+                d_ = datetime.datetime(year, month, day)
             elif calender_type == 2:
                 d_ = convert.Hijri(year, month, day).to_gregorian()
                 year, month, day = d_.year, d_.month, d_.day
-            d_ = datetime.datetime(year, month, day)
+                d_ = datetime.datetime(year, month, day) + \
+                    datetime.timedelta(1)
+            else:
+                d_ = datetime.datetime(year, month, day)
             return d_, (is_day_none, is_month_none, is_year_none)
         except Exception:
             pass
@@ -827,9 +831,10 @@ def export_date_single(st_arr, today_list, calender_type_is_found, calender_type
         try:
             day, year, is_day_none, is_year_none = month_matched(
                 st_space, month_place, today_list[0])
-            year, month, day = jalali_to_gregorian(year, month, day)
-            d_ = datetime.datetime(year, month, day)
-            return d_, (is_day_none, is_month_none, is_year_none)
+            if not is_day_none:
+                year, month, day = jalali_to_gregorian(year, month, day)
+                d_ = datetime.datetime(year, month, day)
+                return d_, (is_day_none, is_month_none, is_year_none)
         except Exception:
             pass
     mtch = re.findall(" | ".join(miladimonthes.keys()), st)
@@ -847,8 +852,9 @@ def export_date_single(st_arr, today_list, calender_type_is_found, calender_type
         try:
             day, year, is_day_none, is_year_none = month_matched(
                 st_space, month_place, today, 1)
-            d_ = datetime.datetime(year, month, day)
-            return d_, (is_day_none, is_month_none, is_year_none)
+            if not is_day_none:
+                d_ = datetime.datetime(year, month, day)
+                return d_, (is_day_none, is_month_none, is_year_none)
         except Exception:
             pass
     mtch = re.findall(" | ".join(qamariMonthes.keys()), st)
@@ -865,9 +871,11 @@ def export_date_single(st_arr, today_list, calender_type_is_found, calender_type
         try:
             day, year, is_day_none, is_year_none = month_matched(
                 st_space, month_place, today_list[2], 2)
-            d_ = convert.Hijri(year, month, day).to_gregorian()
-            d_ = datetime.datetime(d_.year, d_.month, d_.day)
-            return d_, (is_day_none, is_month_none, is_year_none)
+            if not is_day_none:
+                d_ = convert.Hijri(year, month, day).to_gregorian()
+                d_ = datetime.datetime(
+                    d_.year, d_.month, d_.day) + datetime.timedelta(1)
+                return d_, (is_day_none, is_month_none, is_year_none)
         except Exception:
             pass
 
@@ -898,9 +906,14 @@ def export_date_single(st_arr, today_list, calender_type_is_found, calender_type
                 st_space, month_loc, today)
             if calender_type == 0:
                 year, month, day = jalali_to_gregorian(year, month, day)
-            if calender_type == 2:
+                d_ = datetime.datetime(year, month, day)
+            elif calender_type == 2:
                 year, _, day = convert.Hijri(year, month, day)
-            d_ = datetime.datetime(year, month, day)
+                d_ = datetime.datetime(year, month, day) + \
+                    datetime.timedelta(1)
+            else:
+                d_ = datetime.datetime(year, month, day)
+
             return d_, (is_day_none, is_month_none, is_year_none)
         except Exception:
             pass
