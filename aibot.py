@@ -1,7 +1,7 @@
 
 from transformers import TFBertForSequenceClassification, TFAutoModelForTokenClassification
 from transformers import BertTokenizer, AutoTokenizer, AutoConfig
-from speechRec import google
+from speechRec import speech_to_text
 from aryana import *
 from weatherAPI import Weather
 from adhanAPI import Adhan
@@ -98,7 +98,7 @@ class BOT:
         # comment = "1130377539"
         # text = nevisa(file, comment)
         # print(text)
-        text = google(Address)
+        r, text = speech_to_text(Address)
         Question = text
         Question = cleaning(Question)
         type_pred = TR_ID_AIBOTID[classify_question(
