@@ -2,6 +2,7 @@
 
 import ast
 import numpy as np
+from numpy.core.arrayprint import DatetimeFormat
 import pandas as pd
 from hijri_converter import convert
 import re
@@ -287,7 +288,7 @@ def exact_check_event(text, today_gregorian, today_hijri, today_jalali, calender
             elif year_type == "h_d":
                 m_d = jalali_to_gregorian(d[0], d[1], d[2])
                 year_of_that = convert.Gregorian(
-                    m_d[0], m_d[1], m_d[2]).to_hijri()
+                    m_d[0], m_d[1], m_d[2]).to_hijri().year
                 dy = year_of_that - year
                 j_d = (d[0] - dy, d[1], d[2])
                 d = jalali_to_gregorian(j_d[0], j_d[1], j_d[2])
@@ -308,15 +309,15 @@ def exact_check_event(text, today_gregorian, today_hijri, today_jalali, calender
                 y = convert.Gregorian(
                     m_d.year - dy, m_d.month, m_d.day).to_hijri().year
                 m_d = convert.Hijri(y, d[1], d[2]).to_gregorian()
-                d = datetime.datetime(m_d.year, m_d.month, m_d.day)
+                d = datetime.datetime(m_d.year, m_d.month, m_d.day) + datetime.timedelta(1)
             elif year_type == "g_d":
                 dy = m_d.year - year
                 m_d = convert.Hijri(d[0] - dy, d[1], d[2]).to_gregorian()
-                d = datetime.datetime(m_d.year, m_d.month, m_d.day)
+                d = datetime.datetime(m_d.year, m_d.month, m_d.day) + datetime.timedelta(1)
             else:  # year_type == "h_d"
                 h_d = (year, d[1], d[2])
                 m_d = convert.Hijri(h_d[0], h_d[1], h_d[2]).to_gregorian()
-                d = datetime.datetime(m_d.year, m_d.month, m_d.day)
+                d = datetime.datetime(m_d.year, m_d.month, m_d.day) + datetime.timedelta(1)
         return d, (False, False, ev["event"])
 
 
@@ -445,7 +446,7 @@ def check_event(question, tokens, labels, today_gregorian, today_hijri, today_ja
             elif year_type == "h_d":
                 m_d = jalali_to_gregorian(d[0], d[1], d[2])
                 year_of_that = convert.Gregorian(
-                    m_d[0], m_d[1], m_d[2]).to_hijri()
+                    m_d[0], m_d[1], m_d[2]).to_hijri().year
                 dy = year_of_that - year
                 j_d = (d[0] - dy, d[1], d[2])
                 d = jalali_to_gregorian(j_d[0], j_d[1], j_d[2])
@@ -466,15 +467,15 @@ def check_event(question, tokens, labels, today_gregorian, today_hijri, today_ja
                 y = convert.Gregorian(
                     m_d.year - dy, m_d.month, m_d.day).to_hijri().year
                 m_d = convert.Hijri(y, d[1], d[2]).to_gregorian()
-                d = datetime.datetime(m_d.year, m_d.month, m_d.day)
+                d = datetime.datetime(m_d.year, m_d.month, m_d.day) + datetime.timedelta(1)
             elif year_type == "g_d":
                 dy = m_d.year - year
                 m_d = convert.Hijri(d[0] - dy, d[1], d[2]).to_gregorian()
-                d = datetime.datetime(m_d.year, m_d.month, m_d.day)
+                d = datetime.datetime(m_d.year, m_d.month, m_d.day) + datetime.timedelta(1)
             else:  # year_type == "h_d"
                 h_d = (year, d[1], d[2])
                 m_d = convert.Hijri(h_d[0], h_d[1], h_d[2]).to_gregorian()
-                d = datetime.datetime(m_d.year, m_d.month, m_d.day)
+                d = datetime.datetime(m_d.year, m_d.month, m_d.day) + datetime.timedelta(1)
         return d, (False, False, ev["event"])
 
 

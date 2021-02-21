@@ -212,8 +212,10 @@ class Calender:
                 generated_sentence = "تاریخ داده شده به میلادی، {} میباشد".format(
                     tr_gregorian_date(date_list[0]))
             else:
+                new_date = date_list[0] - datetime.timedelta(1)
                 res = convert.Gregorian(
-                    date_list[0].year, date_list[0].month, date_list[0].day).to_hijri()
+                    new_date.year, new_date.month, new_date.day).to_hijri()
+
                 res = format_jalali_date([res.year, res.month,
                                           res.day])
                 answer["calendar_type"].append("قمری")
