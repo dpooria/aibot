@@ -12,6 +12,7 @@ from aibot_date import export_date, gregorian_to_jalali, format_jalali_date
 from vocab import hours_left_asked, hours_difference_asked, USER_CITY
 from weatherAPI import Weather
 import os
+from copy import copy
 
 abs_path = os.path.dirname(os.path.abspath(__file__))
 
@@ -175,9 +176,13 @@ class Time:
                 if len(tz) >= 1:
                     time_zone_list.append(tz[0])
 
-        if len(time_zone_list) == 1:
+        if len(time_zone_list) == 1 or (len(time_zone_list) == 2 and "Asia/Tehran" in time_zone_list):
+            new_location = copy(location)
+            if len(time_zone_list) == 2:
+                time_zone_list.remove("Asia/Tehran")
+                new_location.remove(USER_CITY)
             single_ans, generated_sentence = self.get_single_answer(
-                question, location, time_zone_list, time_iso)
+                question, [new_location[-1]], time_zone_list, time_iso)
             answer["result"] = single_ans if isinstance(
                 single_ans, list) else [single_ans]
         else:

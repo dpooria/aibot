@@ -75,7 +75,6 @@ def tr_date(date_list, tokens, labels):
 
 def tr_single_time(tim, literal=False):
     now_time = datetime.datetime.now().time()
-    print(literal)
     if literal:
         if tim.hour == now_time.hour and abs(tim.minute - now_time.minute) <= 1:
             return "االآن"
