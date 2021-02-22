@@ -176,13 +176,10 @@ class Time:
                 if len(tz) >= 1:
                     time_zone_list.append(tz[0])
 
-        if len(time_zone_list) == 1 or (len(time_zone_list) == 2 and "Asia/Tehran" in time_zone_list):
+        if len(time_zone_list) == 1:
             new_location = copy(location)
-            if len(time_zone_list) == 2:
-                time_zone_list.remove("Asia/Tehran")
-                new_location.remove(USER_CITY)
             single_ans, generated_sentence = self.get_single_answer(
-                question, [new_location[-1]], time_zone_list, time_iso)
+                question, [location[-1]], time_zone_list, time_iso)
             answer["result"] = single_ans if isinstance(
                 single_ans, list) else [single_ans]
         else:
@@ -207,6 +204,12 @@ class Time:
                     location[0], location[-1], gt)
                 answer["result"] = [r]
             else:
+
+                new_location = copy(location)
+                if (len(time_zone_list) == 2 and "Asia/Tehran" in time_zone_list):
+                    time_zone_list.remove("Asia/Tehran")
+                    new_location.remove(USER_CITY)
+                location = new_location
                 t_s = []
                 for t in time_list:
                     t_s.append(t.strftime("%H:%M"))
