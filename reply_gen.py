@@ -73,8 +73,13 @@ def tr_date(date_list, tokens, labels):
     return d_words
 
 
-def tr_single_time(tim):
+def tr_single_time(tim, literal=False):
     now_time = datetime.datetime.now().time()
+    print(literal)
+    if literal:
+        if tim.hour == now_time.hour and abs(tim.minute - now_time.minute) <= 1:
+            return "االآن"
+
     if tim.hour != 0:
         if tim.minute != 0:
             return "ساعت {} و {} دقیقه".format(tim.hour, tim.minute)
@@ -96,4 +101,3 @@ def tr_time(time_iso, tokens, labels):
     else:
         t_words = concatenate_bi(tokens, labels, "B_TIM", "I_TIM")
     return t_words
-

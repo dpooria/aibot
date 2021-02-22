@@ -210,14 +210,16 @@ class Time:
                 l_n = len(location)
                 if l_n == len(t_s):
                     generated_sentence = "{} ".format(
-                        tr_single_time(time_iso[0]))
+                        tr_single_time(time_iso[0], True))
                     for i, (t, lc) in enumerate(zip(time_list, location)):
                         if i != l_n - 1:
                             generated_sentence = generated_sentence + \
-                                "در {}، {} و ".format(lc, tr_single_time(t))
+                                "در {}، {} و ".format(
+                                    lc, tr_single_time(t, True))
                         else:
                             generated_sentence = generated_sentence + \
-                                "در {}، {} ".format(lc, tr_single_time(t))
+                                "در {}، {} ".format(
+                                    lc, tr_single_time(t, True))
 
                     generated_sentence = generated_sentence + "میباشد"
                 answer["result"] = t_s
@@ -237,7 +239,7 @@ class Time:
                 time_res = t.astimezone(pytz.timezone(
                     time_zone_list[0]))
                 generated_sentence = "{} در {} {} است".format(
-                    tr_single_time(time_iso[0]), location[0], tr_single_time(time_res))
+                    tr_single_time(time_iso[0], True), location[0], tr_single_time(time_res))
                 time_res = time_res.strftime("%H:%M")
             else:
                 tnow = datetime.datetime.now()
@@ -258,7 +260,7 @@ class Time:
                 timl = t.astimezone(pytz.timezone(time_zone_list[0]))
                 generated_sentence = generated_sentence + \
                     "{} در {}، {}،".format(tr_single_time(
-                        to), location[0], tr_single_time(timl))
+                        to, True), location[0], tr_single_time(timl))
 
                 time_res.append(timl.strftime("%H:%M"))
             generated_sentence = generated_sentence + "میباشد "

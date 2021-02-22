@@ -207,8 +207,8 @@ class Adhan:
         if n_adhan == 1 and l_n == 1 and d_n == 1:
             if res != None:
                 answer["result"] = [res.strftime("%H:%M")]
-                generated_sentence = "زمان {} {} {}، {} میباشد".format(
-                    exportedAdhan[0], tr_single_date(date_list[0]), location[0], tr_single_time(res))
+                generated_sentence = "{} به افق {}، {}، ساعت {} می‌باشد".format(
+                    exportedAdhan[0], location[0], tr_single_date(date_list[0]), tr_single_time(res))
             is_hour_lef_asked = False
             ihla = []
             for h in hours_left_asked:

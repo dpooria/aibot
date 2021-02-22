@@ -8,7 +8,8 @@ import tensorflow as tf
 import pandas as pd
 import os
 import requests
-from translate.translator import translator
+from translate import translator
+
 from vocab import USER_CITY, loc_literals
 
 abs_path = os.path.dirname(os.path.abspath(__file__))

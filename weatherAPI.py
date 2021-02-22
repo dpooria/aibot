@@ -8,7 +8,6 @@ import datetime
 from aibot_date import export_date, gregorian_to_jalali, format_jalali_date
 from aibot_time import export_time
 from adhanAPI import Adhan
-from copy import copy
 from vocab import (
     USER_CITY, weather_description_asked,
     weather_temperature_asked,
