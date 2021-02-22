@@ -44,6 +44,7 @@ class Calender:
 
         d_n = len(date_list)
         today = datetime.datetime.today()
+        no_date = False
         if d_n == 0:
             date_list = [today]
             d_n = 1
@@ -60,83 +61,50 @@ class Calender:
         answer["event"] = list(event_list)
         self.bii = concatenate_bi(tokens, labels, "B_DAT", "I_DAT")
 
-        if d_n == 1:
-            asingle, generated_sentence = self.get_single_answer(
-                question, answer, date_list, events)
-            if asingle != None:
-                answer = asingle
-            else:
-                answer["result"] = date_list_jalali
-                trsd = tr_single_date(date_list[0], True)
-                if self.bii:
-                    if date_list[0].date() >= today.date():
-                        generated_sentence = "{}، {} میباشد".format(" ".join(self.bii),
-                                                                    trsd)
-                    else:
-                        generated_sentence = "{}، {} بوده است".format(" ".join(self.bii),
-                                                                      trsd)
-                else:
-                    if date_list[0].date() >= today.date():
-                        generated_sentence = "تاریخ داده شده {} است".format(
-                            trsd)
-                    else:
-                        generated_sentence = "تاریخ داده شده {} بوده".format(
-                            trsd)
+        if no_date:
+            answer["result"] = date_list_jalali
+            generated_sentence = "امروز، {} است".format(
+                tr_single_date(date_list[0], force_date=True))
         else:
-            answer["result"] = []
-            tokenize_questions = hazm.sent_tokenize(question)
-            if len(tokenize_questions) == 1:
-                tokenize_questions = question.split(" و ")
-            if d_n == len(tokenize_questions):
-                generated_sentence = ""
-                if d_n != len(events):
-                    s = 0
-                    for i, (d, tk) in enumerate(zip(date_list, tokenize_questions)):
-                        if i in which_date_is_event:
-                            n_answer, n_generated_sentence = self.get_single_answer(
-                                tk, answer, [d], [events[which_date_is_event[s]]], self.bii[i] if len(self.bii) == d_n else None)
-                            s += 1
-                        else:
-                            n_answer, n_generated_sentence = self.get_single_answer(
-                                tk, answer, [d], None, self.bii[i] if len(self.bii) == d_n else None)
-                        if n_answer != None:
-                            answer = n_answer
-                            if generated_sentence:
-                                generated_sentence = generated_sentence + " و " + n_generated_sentence
-                            else:
-                                generated_sentence = n_generated_sentence
-                        else:
-                            n_answer, n_generated_sentence = self.get_single_answer(
-                                question, answer, [d], events, self.bii[i] if len(self.bii) == d_n else None)
-                            if n_answer != None:
-                                answer = n_answer
-                                if generated_sentence:
-                                    generated_sentence = generated_sentence + " و " + n_generated_sentence
-                                else:
-                                    generated_sentence = n_generated_sentence
-                            else:
-                                n_generated_sentence = "تاریخ داده شده {} میباشد".format(
-                                    tr_single_date(d))
-
-                                j = gregorian_to_jalali(d.year, d.month, d.day)
-                                answer["result"].append(format_jalali_date(j))
-                                if generated_sentence:
-                                    generated_sentence = generated_sentence + " و " + n_generated_sentence
-                                else:
-                                    generated_sentence = n_generated_sentence
+            if d_n == 1:
+                asingle, generated_sentence = self.get_single_answer(
+                    question, answer, date_list, events)
+                if asingle != None:
+                    answer = asingle
                 else:
-                    for i in range(d_n):
-                        n_answer, n_generated_sentence = self.get_single_answer(
-                            tokenize_questions[i], answer, [date_list[i]], [events[i]], self.bii[i] if len(self.bii) == d_n else None)
-                        if n_answer != None:
-                            answer = n_answer
-                            if generated_sentence:
-                                generated_sentence = generated_sentence + " و " + n_generated_sentence
-                            else:
-                                generated_sentence = n_generated_sentence
+                    answer["result"] = date_list_jalali
+                    trsd = tr_single_date(date_list[0], True)
+                    if self.bii:
+                        if date_list[0].date() >= today.date():
+                            generated_sentence = "{}، {} میباشد".format(" ".join(self.bii),
+                                                                        trsd)
                         else:
-                            n_answer, n_generated_sentence = self.get_single_answer(
-                                question, answer, [date_list[i]], [events[i]], self.bii[i] if len(self.bii) == d_n else None)
+                            generated_sentence = "{}، {} بوده است".format(" ".join(self.bii),
+                                                                          trsd)
+                    else:
+                        if date_list[0].date() >= today.date():
+                            generated_sentence = "تاریخ داده شده {} است".format(
+                                trsd)
+                        else:
+                            generated_sentence = "تاریخ داده شده {} بوده".format(
+                                trsd)
+            else:
+                answer["result"] = []
+                tokenize_questions = hazm.sent_tokenize(question)
+                if len(tokenize_questions) == 1:
+                    tokenize_questions = question.split(" و ")
+                if d_n == len(tokenize_questions):
+                    generated_sentence = ""
+                    if d_n != len(events):
+                        s = 0
+                        for i, (d, tk) in enumerate(zip(date_list, tokenize_questions)):
+                            if i in which_date_is_event:
+                                n_answer, n_generated_sentence = self.get_single_answer(
+                                    tk, answer, [d], [events[which_date_is_event[s]]], self.bii[i] if len(self.bii) == d_n else None)
+                                s += 1
+                            else:
+                                n_answer, n_generated_sentence = self.get_single_answer(
+                                    tk, answer, [d], None, self.bii[i] if len(self.bii) == d_n else None)
                             if n_answer != None:
                                 answer = n_answer
                                 if generated_sentence:
@@ -144,26 +112,67 @@ class Calender:
                                 else:
                                     generated_sentence = n_generated_sentence
                             else:
-                                j = gregorian_to_jalali(
-                                    date_list[i].year, date_list[i].month, date_list[i].day)
-                                answer["result"].append(format_jalali_date(j))
-                                n_generated_sentence = "تاریخ داده شده {} است".format(
-                                    tr_single_date(date_list[i]))
+                                n_answer, n_generated_sentence = self.get_single_answer(
+                                    question, answer, [d], events, self.bii[i] if len(self.bii) == d_n else None)
+                                if n_answer != None:
+                                    answer = n_answer
+                                    if generated_sentence:
+                                        generated_sentence = generated_sentence + " و " + n_generated_sentence
+                                    else:
+                                        generated_sentence = n_generated_sentence
+                                else:
+                                    n_generated_sentence = "تاریخ داده شده {} میباشد".format(
+                                        tr_single_date(d))
+
+                                    j = gregorian_to_jalali(
+                                        d.year, d.month, d.day)
+                                    answer["result"].append(
+                                        format_jalali_date(j))
+                                    if generated_sentence:
+                                        generated_sentence = generated_sentence + " و " + n_generated_sentence
+                                    else:
+                                        generated_sentence = n_generated_sentence
+                    else:
+                        for i in range(d_n):
+                            n_answer, n_generated_sentence = self.get_single_answer(
+                                tokenize_questions[i], answer, [date_list[i]], [events[i]], self.bii[i] if len(self.bii) == d_n else None)
+                            if n_answer != None:
+                                answer = n_answer
                                 if generated_sentence:
                                     generated_sentence = generated_sentence + " و " + n_generated_sentence
                                 else:
                                     generated_sentence = n_generated_sentence
+                            else:
+                                n_answer, n_generated_sentence = self.get_single_answer(
+                                    question, answer, [date_list[i]], [events[i]], self.bii[i] if len(self.bii) == d_n else None)
+                                if n_answer != None:
+                                    answer = n_answer
+                                    if generated_sentence:
+                                        generated_sentence = generated_sentence + " و " + n_generated_sentence
+                                    else:
+                                        generated_sentence = n_generated_sentence
+                                else:
+                                    j = gregorian_to_jalali(
+                                        date_list[i].year, date_list[i].month, date_list[i].day)
+                                    answer["result"].append(
+                                        format_jalali_date(j))
+                                    n_generated_sentence = "تاریخ داده شده {} است".format(
+                                        tr_single_date(date_list[i]))
+                                    if generated_sentence:
+                                        generated_sentence = generated_sentence + " و " + n_generated_sentence
+                                    else:
+                                        generated_sentence = n_generated_sentence
 
-            else:
-                for d in date_list:
-                    n_answer, n_generated_sentence = self.get_single_answer(
-                        question, answer, [d], events, self.bii[i] if len(self.bii) == d_n else None)
-                    if n_answer != None:
-                        answer = n_answer
-                        if generated_sentence:
-                            generated_sentence = generated_sentence + " و " + n_generated_sentence
-                        else:
-                            generated_sentence = n_generated_sentence
+                else:
+                    for d in date_list:
+                        n_answer, n_generated_sentence = self.get_single_answer(
+                            question, answer, [d], events, self.bii[i] if len(self.bii) == d_n else None)
+                        if n_answer != None:
+                            answer = n_answer
+                            if generated_sentence:
+                                generated_sentence = generated_sentence + " و " + n_generated_sentence
+                            else:
+                                generated_sentence = n_generated_sentence
         return answer, cleaning(generated_sentence)
 
     def get_single_answer(self, question, answer, date_list, events, bii=None):

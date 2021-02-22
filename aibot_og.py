@@ -62,7 +62,7 @@ class BOT:
         answer = {'type': ['0'], 'city': [], 'date': [],
                   'time': [], 'religious_time': [], 'calendar_type': [], 'event': [], 'api_url': '', 'result': []}
         r, text = speech_to_text(Address)
-        if r == -1:
+        if r == -1 or not text:
             response = aryana("مشکل در تشخیص صوت به وجود آمد")
             return answer, response
         Question = text

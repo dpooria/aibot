@@ -242,7 +242,6 @@ def exact_check_event(text, today_gregorian, today_hijri, today_jalali, calender
         for num in perstr_to_num.keys():
             if " " + num + " " in st:
                 st = re.sub(" " + num + " ", " ", st)
-
         st = cleaning(st)
         if len(st) <= 3:
             return None, (True, True, True)
@@ -261,7 +260,6 @@ def exact_check_event(text, today_gregorian, today_hijri, today_jalali, calender
         for i, e in enumerate(df_event["event"]):
             if st in e:
                 event_list.append(df_event.iloc[i])
-
     if not event_list and (not text in wrong_date):
         st = text
         for yl in year_literals.keys():
@@ -276,13 +274,11 @@ def exact_check_event(text, today_gregorian, today_hijri, today_jalali, calender
             if " " + num + " " in st:
                 st = re.sub(" " + num + " ", " ", st)
 
-        st = cleaning(st)
         if len(st) <= 3:
             return None, (True, True, True)
         for i, e in enumerate(df_event["event"]):
             if st in e:
                 event_list.append(df_event.iloc[i])
-
     events = pd.DataFrame(event_list)
     if events.empty:
         return None, (True, True, True)

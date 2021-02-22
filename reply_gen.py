@@ -77,7 +77,7 @@ def tr_single_time(tim, literal=False):
     now_time = datetime.datetime.now().time()
     if literal:
         if tim.hour == now_time.hour and abs(tim.minute - now_time.minute) <= 1:
-            return "االآن"
+            return "الآن"
 
     if tim.hour != 0:
         if tim.minute != 0:

@@ -1342,7 +1342,7 @@ class Weather:
                                           datetime.time(23, 0)),
             )
             mean_ = mean_func(temp["temp"].to_numpy())
-            return "%4.2f" % mean_, "میانگین دمای هوای {} در {}، {} درجه سانتی‌گراد است".format(location[0], tr_single_date(date_list[0]), "%4.2f" % mean_)
+            return "%4.2f" % mean_, "میانگین دمای هوای {}، {}، {} درجه سانتی‌گراد است".format(location[0], tr_single_date(date_list[0]), "%4.2f" % mean_)
         # t0or1 d1 l>=2
         if (t == 0 or t == 1) and d == 1 and l >= 2:
             res = []

@@ -165,8 +165,8 @@ class Adhan:
         answer["event"] = events
         d_n = len(date_list)
         no_date = False
+        today = datetime.datetime.today()
         if d_n == 0:
-            today = datetime.datetime.today()
             date_list = [today]
             today_j = gregorian_to_jalali(today.year, today.month, today.day)
             answer["date"] = [format_jalali_date(today_j)]
@@ -207,8 +207,12 @@ class Adhan:
         if n_adhan == 1 and l_n == 1 and d_n == 1:
             if res != None:
                 answer["result"] = [res.strftime("%H:%M")]
-                generated_sentence = "{} به افق {}، {}، ساعت {} می‌باشد".format(
-                    exportedAdhan[0], location[0], tr_single_date(date_list[0]), tr_single_time(res))
+                if date_list[0].date() >= today.date():
+                    generated_sentence = "{} به افق {}، {}، {} می‌باشد".format(
+                        exportedAdhan[0], location[0], tr_single_date(date_list[0]), tr_single_time(res))
+                else:
+                    generated_sentence = "{} به افق {}، {}، {} بوده".format(
+                        exportedAdhan[0], location[0], tr_single_date(date_list[0]), tr_single_time(res))
             is_hour_lef_asked = False
             ihla = []
             for h in hours_left_asked:
@@ -290,7 +294,10 @@ class Adhan:
                             else:
                                 generated_sentence = generated_sentence + \
                                     "{} ،{} ".format(ad, tr_single_time(res))
-                    generated_sentence = generated_sentence + "میباشد"
+                    if date_list[0].date() >= today.date():
+                        generated_sentence = generated_sentence + "میباشد"
+                    else:
+                        generated_sentence = generated_sentence + "بوده"
                 elif n_adhan == 1 and l_n >= 2 and d_n == 1:
                     generated_sentence = "{} ".format(
                         tr_single_date(date_list[0]))
