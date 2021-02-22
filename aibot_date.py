@@ -222,14 +222,12 @@ def jalali_to_gregorian(jy, jm, jd):
 
 
 def exact_check_event(text, today_gregorian, today_hijri, today_jalali, calender_type=0):
-    print(text)
     event_list = []
     modified_text = re.sub("\d+", "", text)
     for ae in after_event:
         modified_text = modified_text.replace(ae, "")
     if not modified_text:
         return None, (True, True, True)
-    print(modified_text)
     for i, e in enumerate(df_event["event"]):
         if e in text:
             event_list.append(df_event.iloc[i])
@@ -244,13 +242,11 @@ def exact_check_event(text, today_gregorian, today_hijri, today_jalali, calender
         for be in before_events:
             st = re.sub(" {} ".format(be), " ", st)
             st = re.sub("^{} ".format(be), " ", st)
-        print("""|||""", st)
         for num in perstr_to_num.keys():
             if " " + num + " " in st:
                 st = re.sub(" " + num + " ", " ", st)
 
         st = cleaning(st)
-        print(":::", st)
         if len(st) <= 3:
             return None, (True, True, True)
         for i, e in enumerate(df_event["event"]):
@@ -258,7 +254,6 @@ def exact_check_event(text, today_gregorian, today_hijri, today_jalali, calender
                 event_list.append(df_event.iloc[i])
 
     if not event_list and not (text in wrong_date):
-        print('whatiititi')
         event_tokens = word_tokenize(text)
         n_t = []
         for e in event_tokens:
@@ -266,7 +261,6 @@ def exact_check_event(text, today_gregorian, today_hijri, today_jalali, calender
                 n_t.append(e)
         st = " ".join(n_t)
         st = cleaning(re.sub("\d+", "", st))
-        print("LLSLSAL", st)
         for i, e in enumerate(df_event["event"]):
             if st in e:
                 event_list.append(df_event.iloc[i])
