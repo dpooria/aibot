@@ -37,11 +37,9 @@ class Time:
         try:
             desired_delta = datetime.timedelta(seconds=tz_offset)
         except Exception:
-            print(tz_offset)
             try:
                 desired_delta = datetime.timedelta(seconds=int(tz_offset))
             except Exception:
-                print("babbab")
                 desired_delta = datetime.timedelta(3, 30)
 
         # Loop through the timezones and find any with matching offsets

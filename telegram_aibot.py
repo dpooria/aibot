@@ -20,7 +20,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler
 from aibot import BOT
 import ftransc.core as ft
-
+import time
 
 type_dict = {"-1": "پرسش خارج از توان",
              "1": "آب و هوا",
@@ -101,9 +101,9 @@ def transcribe_voice(update, context):
 
     file_name = "userID{}messageID{}".format(
         update.message.chat.username, update.message.message_id)
-
-    ft.transcode(voice.download(
-        'voice/temp.ogg'), 'wav', output_folder="voice")  # file.wav
+    voice.download('voice/temp.ogg')
+    time.sleep(1)
+    ft.transcode("voice/temp.ogg", 'wav', output_folder="voice")  # file.wav
 
     res, response, question, generated_sentence = bot.aibot_voice(
         "voice/temp.wav")
