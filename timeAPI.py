@@ -9,7 +9,7 @@ import re
 from aibot_utils import location_handler, unique_without_sort, cleaning
 from aibot_time import export_time
 from aibot_date import export_date, gregorian_to_jalali, format_jalali_date
-from vocab import hours_left_asked, hours_difference_asked, USER_CITY
+from vocab import hours_left_asked, hours_difference_asked, USER_CITY, time_reverse_convert
 from weatherAPI import Weather
 import os
 from copy import copy
@@ -33,10 +33,18 @@ class Time:
     def possible_timezones(tz_offset, common_only=True):
         # pick one of the timezone collections
         timezones = pytz.common_timezones if common_only else pytz.all_timezones
-        desired_delta = datetime.timedelta(seconds=tz_offset)
+        null_delta = datetime.timedelta(0, 0)
+        try:
+            desired_delta = datetime.timedelta(seconds=tz_offset)
+        except Exception:
+            print(tz_offset)
+            try:
+                desired_delta = datetime.timedelta(seconds=int(tz_offset))
+            except Exception:
+                print("babbab")
+                desired_delta = datetime.timedelta(3, 30)
 
         # Loop through the timezones and find any with matching offsets
-        null_delta = datetime.timedelta(0, 0)
         results = []
         for tz_name in timezones:
             tz = pytz.timezone(tz_name)
@@ -176,12 +184,34 @@ class Time:
                 if len(tz) >= 1:
                     time_zone_list.append(tz[0])
 
+        is_reversed_asked = False
+        for r in time_reverse_convert:
+            if r in question:
+                is_reversed_asked = True
+
         if len(time_zone_list) == 1:
             new_location = copy(location)
             single_ans, generated_sentence = self.get_single_answer(
                 question, [location[-1]], time_zone_list, time_iso)
             answer["result"] = single_ans if isinstance(
                 single_ans, list) else [single_ans]
+        elif len(time_zone_list) == 2 and is_reversed_asked:
+            time_zone_list.remove("Asia/Tehran")
+            timzon = pytz.timezone(time_zone_list[0])
+            t = timzon.localize(time_iso[0], is_dst=None).astimezone(pytz.utc)
+            t = t.astimezone(self.local_time)
+            answer["result"] = [t.strftime("%H:%M")]
+            new_location = copy(location)
+            try:
+                new_location.remove("تهران")
+            except Exception:
+                try:
+                    new_location.remove("ایران")
+                except Exception:
+                    pass
+
+            generated_sentence = "{} در {}، {} به وقتa تهران میباشد".format(tr_single_time(
+                time_iso[0], literal=False), new_location[0], tr_single_time(t, literal=False))
         else:
             time_list = []
             for tz in time_zone_list:
@@ -221,13 +251,11 @@ class Time:
                         tr_single_time(time_iso[0], True))
                     for i, (t, lc) in enumerate(zip(time_list, location)):
                         if i != l_n - 1:
-                            generated_sentence = generated_sentence + \
-                                "در {}، {} و ".format(
-                                    lc, tr_single_time(t, True))
+                            generated_sentence = generated_sentence + "در {}، {} و ".format(
+                                lc, tr_single_time(t, True))
                         else:
-                            generated_sentence = generated_sentence + \
-                                "در {}، {} ".format(
-                                    lc, tr_single_time(t, True))
+                            generated_sentence = generated_sentence + "در {}، {} ".format(
+                                lc, tr_single_time(t, True))
 
                     generated_sentence = generated_sentence + "میباشد"
                 answer["result"] = t_s
@@ -266,9 +294,8 @@ class Time:
                 t = self.local_time.localize(
                     to, is_dst=None).astimezone(pytz.utc)
                 timl = t.astimezone(pytz.timezone(time_zone_list[0]))
-                generated_sentence = generated_sentence + \
-                    "{} در {}، {}،".format(tr_single_time(
-                        to, True), location[0], tr_single_time(timl))
+                generated_sentence = generated_sentence + "{} در {}، {}،".format(tr_single_time(
+                    to, True), location[0], tr_single_time(timl))
 
                 time_res.append(timl.strftime("%H:%M"))
             generated_sentence = generated_sentence + "میباشد "

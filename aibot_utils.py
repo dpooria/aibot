@@ -10,7 +10,7 @@ import os
 import requests
 from translate import translator
 
-from vocab import USER_CITY, loc_literals
+from vocab import USER_CITY, loc_literals, loc_literals2
 
 abs_path = os.path.dirname(os.path.abspath(__file__))
 
@@ -73,7 +73,7 @@ def cleaning(text):
     # removing extra spaces, hashtags
     text = re.sub("#", "", text)
     text = re.sub("\s+", " ", text)
-
+    text = re.sub("a", "ِ", text)
     return text
 
 
@@ -145,15 +145,20 @@ def get_city_info(cityName):
 def location_fix(question, location):
     location_fixed = []
     for l in location:
-        lc = cleaning(re.sub("پایتخت", "", l))
+        lc = l
+        for lcliter in loc_literals2:
+            if lcliter in lc:
+                lc = re.sub(lcliter, "", lc)
+
+        lc = cleaning(lc)
         if (lc in df_capitals["country"].to_numpy()) and ("پایتخت" in question):
             location_fixed.append(
                 df_capitals["capital"].loc[df_capitals["country"] == lc].to_numpy()[0])
-        elif (cleaning(l.replace("استان", "")) in df_province["name"].to_numpy()) and ("مرکز" in question):
+        elif lc in df_province["name"].to_numpy():
             location_fixed.append(
-                df_province["center"].loc[df_province["name"] == cleaning(l.replace("استان", ""))].to_numpy()[0])
+                df_province["center"].loc[df_province["name"] == lc].to_numpy()[0])
         else:
-            location_fixed.append(l)
+            location_fixed.append(lc)
     for ll in loc_literals:
         if ll in location_fixed:
             location_fixed.remove(ll)
@@ -161,8 +166,8 @@ def location_fix(question, location):
 
 
 def location_(question, tokens, labels):
-    bloc = np.array(tokens)[labels == "B_LOC"]
-    iloc = np.array(tokens)[labels == "I_LOC"]
+    bloc=np.array(tokens)[labels == "B_LOC"]
+    iloc=np.array(tokens)[labels == "I_LOC"]
     if len(bloc) == 0 and len(iloc) == 0:
         return []
     if len(bloc) == 0 and len(iloc) != 0:
@@ -174,11 +179,11 @@ def location_(question, tokens, labels):
     if len(iloc) == 0:
         return location_fix(question, bloc)
     else:
-        bloc_loc = np.where(labels == "B_LOC")[0]
-        iloc_loc = np.where(labels == "I_LOC")[0]
-        locs = []
-        new_bloc_loc = []
-        new_bloc = []
+        bloc_loc=np.where(labels == "B_LOC")[0]
+        iloc_loc=np.where(labels == "I_LOC")[0]
+        locs=[]
+        new_bloc_loc=[]
+        new_bloc=[]
         for i, b in enumerate(bloc_loc):
             if not tokens[b] in loc_literals:
                 new_bloc_loc.append(b)
@@ -186,19 +191,19 @@ def location_(question, tokens, labels):
             else:
                 new_bloc_loc.append(iloc_loc[iloc_loc > b][0])
                 new_bloc.append(iloc[iloc_loc > b][0])
-        bloc_loc = np.array(new_bloc_loc)
-        bloc = np.array(new_bloc)
+        bloc_loc=np.array(new_bloc_loc)
+        bloc=np.array(new_bloc)
         for i in range(len(bloc)):
             if i == len(bloc) - 1:
-                iloc_ = iloc[(iloc_loc > bloc_loc[i])]
+                iloc_=iloc[(iloc_loc > bloc_loc[i])]
             else:
-                iloc_ = iloc[(iloc_loc > bloc_loc[i]) &
+                iloc_=iloc[(iloc_loc > bloc_loc[i]) &
                              (iloc_loc < bloc_loc[i + 1])]
             locs.append(location_fix(question,
                                      [cleaning(" ".join(np.r_[[bloc[i]], iloc_]))])[0])
         if locs:
             for i, l in enumerate(locs):
-                locs[i] = l.replace(" ", "‌")
+                locs[i] = re.sub(" ", "‌", l)
         return locs
 
 

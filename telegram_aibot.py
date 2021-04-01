@@ -68,7 +68,7 @@ st_res_show = "نوع سوال: {} \n نام شهرها: {} \n تاریخ: {} \n
 
 def echo(update, context):
     """on text message"""
-    res, generated_sentence = bot.AIBOT(update.message.text)
+    res, generated_sentence = bot.aibot(update.message.text)
     res_str = st_res_show.format(type_dict[res["type"][0]], res["city"], res["date"],
                                  res["time"], res["religious_time"], res["calendar_type"], res["event"], res["result"])
 
@@ -105,7 +105,7 @@ def transcribe_voice(update, context):
     ft.transcode(voice.download(
         'voice/temp.ogg'), 'wav', output_folder="voice")  # file.wav
 
-    res, response, question, generated_sentence = bot.AIBOT_Modified(
+    res, response, question, generated_sentence = bot.aibot_voice(
         "voice/temp.wav")
     res_str = st_res_show.format(type_dict[res["type"][0]], res["city"], res["date"],
                                  res["time"], res["religious_time"], res["calendar_type"], res["event"], res["result"])
@@ -218,7 +218,7 @@ def main():
 
     # on noncommand i.e message - echo the message on Telegram
     dp.add_handler(MessageHandler(Filters.text, echo))
-    # dp.add_handler(MessageHandler(Filters.voice, transcribe_voice))
+    dp.add_handler(MessageHandler(Filters.voice, transcribe_voice))
 
     # log all errors
     dp.add_error_handler(error)

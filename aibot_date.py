@@ -1068,7 +1068,7 @@ def export_date(question, tokens, labels, no_period_return=False):
             for dat in d_[0]:
                 dates.append((dat, d_[1]))
             return dates
-        if d_[0] == None or d_[1][0] or d_[1][1] or d_[1][2]:
+        if d_[0] == None or d_[1][0] or d_[1][1]:
             d_ = exact_check_event(" ".join(st_arr), today_gregorian,
                                    today_hijri, today_jalali, calender_type)
 

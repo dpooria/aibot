@@ -1,5 +1,5 @@
 
-
+import time
 import requests
 from translate import translator
 import numpy as np
@@ -15,9 +15,9 @@ from vocab import (
     day_asked,
     time_asked,
     weather_logical,
-    temp_asked)
+    temp_asked, tr_null_cities)
 from reply_gen import tr_date, tr_time, tr_single_date, tr_single_time
-from aibot_utils import location_handler, unique_without_sort, cleaning
+from aibot_utils import location_handler, unique_without_sort
 
 
 # Class to handle weather api
@@ -46,7 +46,11 @@ class Weather:
             return pd.DataFrame(weathers)
         else:
             try:
-                cityname_eng = translator("fa", "en", cityName)[0][0][0]
+                time.sleep(1)
+                if cityName in tr_null_cities.keys():
+                    cityname_eng = tr_null_cities[cityName]
+                else:
+                    cityname_eng = translator("fa", "en", cityName)[0][0][0]
                 data = requests.get(
                     self.eng_openweatherapi.format(cityname_eng)).json()
                 if data["cod"] == "200":
@@ -61,7 +65,7 @@ class Weather:
                     return pd.DataFrame(weathers)
                 else:
                     return pd.DataFrame()
-            except:
+            except Exception:
                 return pd.DataFrame()
 
     def getCityWeather(self, city, date):
@@ -236,8 +240,8 @@ class Weather:
                     else:
                         res = str(result["temp"])
                         answer["result"] = res
-                        n_generated_sentence = "دمای هوای {} {} {}، {} درجه سانتی‌گراد است".format(
-                            location[0], tr_single_date(date_list[0]), tr_single_time(time_iso[0]), res)
+                        n_generated_sentence = "دمای هوای {} {} {}، {} درجه‌ی سانتی‌گراد است".format(
+                            location[0], tr_single_date(date_list[0]), tr_single_time(time_iso[0]), round(result["temp"]))
                         if generated_sentence:
                             generated_sentence = generated_sentence + "." + n_generated_sentence
                         else:
@@ -262,8 +266,8 @@ class Weather:
                         else:
                             res1 = str(result["temp"])
                             answer["result"].append(res1)
-                            n_generated_sentence = "{} {}، {} ،درجه سانتی‌گراد است".format(tr_single_date(
-                                dat.date()), tr_single_time(dat.time()), res1)
+                            n_generated_sentence = "{} {}، {} ،درجه‌ی سانتی‌گراد است".format(tr_single_date(
+                                dat.date()), tr_single_time(dat.time()), round(float(res1)))
                         if s == 0:
                             generated_sentence = generated_sentence + " " + n_generated_sentence
                         else:
@@ -283,8 +287,8 @@ class Weather:
                         else:
                             res1 = str(result["temp"])
                             answer["result"].append(res1)
-                            n_generated_sentence = "دمای هوای {} {} {}، {} درجه سانتی‌گراد است".format(
-                                lc, tr_single_date(dat), tr_single_time(dat.time()), res1)
+                            n_generated_sentence = "دمای هوای {} {} {}، {} درجه‌ی سانتی‌گراد است".format(
+                                lc, tr_single_date(dat), tr_single_time(dat.time()), round(float(res1)))
                         if generated_sentence:
                             generated_sentence = generated_sentence + " و " + n_generated_sentence
                         else:
@@ -309,7 +313,7 @@ class Weather:
                         else:
                             res1 = str(result["temp"])
                             answer["result"].append(res1)
-                            n_generated_sentence = "{} {} درجه سانتی‌گراد است".format(
+                            n_generated_sentence = "{} {} درجه‌ی سانتی‌گراد است".format(
                                 lc, res1)
                         if s == 0:
                             generated_sentence = generated_sentence + " " + n_generated_sentence
@@ -335,8 +339,8 @@ class Weather:
                         else:
                             res1 = str(result["temp"])
                             answer["result"].append(res1)
-                            n_generated_sentence = "{} {} درجه سانتی‌گراد است".format(
-                                lc, res1)
+                            n_generated_sentence = "{} {} درجه‌ی سانتی‌گراد است".format(
+                                lc, round(float(res1)))
                         if s == 0:
                             generated_sentence = generated_sentence + " " + n_generated_sentence
                         else:
@@ -344,7 +348,7 @@ class Weather:
                         s += 1
         if not isinstance(answer["result"], list):
             answer["result"] = [answer["result"]]
-        return answer, cleaning(generated_sentence).replace("٫", "/")
+        return answer, generated_sentence
 
     @ staticmethod
     def get_city_info(cityName):
@@ -503,7 +507,7 @@ class Weather:
                         dmn_str = "سردترین"
                     else:
                         dmn_str = "گرمترین"
-                    generated_sentence = "{} {} دمای {}، بین {}، روز {} است".format(
+                    generated_sentence = "{} {} دمای {}، بین {}، {} است".format(
                         dmn_str, mabs_str, tr_single_date(date_list[0]), " و ".join(location), result)
 
             elif t >= 2 and l == 1 and d == 1:
@@ -1104,7 +1108,7 @@ class Weather:
                 else:
                     generated_sentence = "حداکثر دمای {} در {} {} درجه سانتی گراد میباشد".format(
                         tr_date(date_list, tokens, labels)[0], location[0], result)
-            return str(result), cleaning(generated_sentence)
+            return str(result), generated_sentence
         # t0or1 d1 l>=2
         if (t == 0 or t == 1) and d == 1 and l >= 2:
             if t == 0:
@@ -1134,7 +1138,7 @@ class Weather:
                     generated_sentence = "بین شهرهای {}، {} {} دمای هوای {} گرمتر است".format(
                         " و ".join(location), tr_date(date_list, tokens, labels)[0],  tr_time(time_iso, tokens, labels)[0], result)
 
-            return result, cleaning(generated_sentence)
+            return result, generated_sentence
         # t0 d>=2 l1
         if t == 0 and d >= 2 and l == 1:
             res = self.getCityWeatherInDatePeriod(
@@ -1159,14 +1163,14 @@ class Weather:
                     result = gregorian_to_jalali(
                         result_g.year, result_g.month, result_g.day)
                     result = format_jalali_date(result)
-                    result_g = cleaning(tr_single_date(result_g))
+                    result_g = tr_single_date(result_g)
                     if min_max_func == np.argmax:
                         generated_sentence = "گرمترین روز بین روزهای {} در {}، {} میباشد ".format(
                             " و ".join(tr_date(date_list, tokens, labels)), location[0], result_g)
                     else:
                         generated_sentence = "سردترین روز بین روزهای {} در {}، {} میباشد".format(
                             " و ".join(tr_date(date_list, tokens, labels)), location[0], result_g)
-                return result, cleaning(generated_sentence)
+                return result, generated_sentence
 
         # t1 d>=2 l1
         if t == 1 and d >= 2 and l == 1:
@@ -1193,7 +1197,7 @@ class Weather:
                 result = gregorian_to_jalali(
                     result_g.year, result_g.month, result_g.day)
                 result = format_jalali_date(result)
-                result_g = cleaning(tr_single_date(result_g))
+                result_g = tr_single_date(result_g)
                 if min_max_func == np.argmax:
                     generated_sentence = "گرمترین روز {} بین روزهای {} در {}، {} میباشد ".format(location[0],
                                                                                                  " و ".join(tr_date(date_list, tokens, labels)), tr_single_time(time_iso[0]), result_g)
@@ -1201,7 +1205,7 @@ class Weather:
                     generated_sentence = "سردترین روز {} بین روزهای {} در {}، {} میباشد".format(location[0],
                                                                                                 " و ".join(tr_date(date_list, tokens, labels)), tr_single_time(time_iso[0]), result_g)
 
-            return result, cleaning(generated_sentence)
+            return result, generated_sentence
 
         # t>=2 d1 l1
         if t >= 2 and d == 1 and l == 1:
@@ -1279,16 +1283,16 @@ class Weather:
                 result = min_max_func(res)
                 if min_max_func == np.argmax:
                     generated_sentence = "حداکثر دمای {} در {}، {}، {} درجه سانتی‌گراد میباشد".format(
-                        location[0], " و ".join(tr_date(date_list, tokens, labels)), " و ".join(tr_time(time_iso, tokens, labels)), result)
+                        location[0], " و ".join(tr_date(date_list, tokens, labels)), " و ".join(tr_time(time_iso, tokens, labels)), round(float(result)))
                 else:
                     generated_sentence = "حداقل دمای {} در {}، {}، {} درجه سانتی‌گراد میباشد".format(
-                        location[0], " و ".join(tr_date(date_list, tokens, labels)), " و ".join(tr_time(time_iso, tokens, labels)), result)
+                        location[0], " و ".join(tr_date(date_list, tokens, labels)), " و ".join(tr_time(time_iso, tokens, labels)), round(float(result)))
             else:
                 result_g = date_list[min_max_func(res)]
                 result = gregorian_to_jalali(
                     result_g.year, result_g.month, result_g.day)
                 result = format_jalali_date(result)
-                result_g = cleaning(tr_single_date(result_g))
+                result_g = tr_single_date(result_g)
                 if min_max_func == np.argmax:
                     generated_sentence = "گرمترین زمان بین {}، {} در {} {} است".format(
                         " و ".join(tr_time(time_iso, tokens, labels)), " و ".join(tr_date(date_list, tokens, labels)), location[0], result_g)
@@ -1310,11 +1314,11 @@ class Weather:
             if ta or force_return_temp:
                 result = min_max_func(res)
                 if min_max_func == np.argmax:
-                    generated_sentence = "حداکثر دمای شهرهای {} در {} {}، {} درجه سانتی‌گراد میباشد".format(" و ".join(
-                        location), tr_single_date(date_list[0]), " و ".join(tr_time(time_iso, tokens, labels)), result)
+                    generated_sentence = "حداکثر دمای شهرهای {} در {} {}، {} درجه‌ی سانتی‌گراد میباشد".format(" و ".join(
+                        location), tr_single_date(date_list[0]), " و ".join(tr_time(time_iso, tokens, labels)), round(float(result)))
                 else:
-                    generated_sentence = "حداقل دمای شهرهای {} در {} {}، {} درجه سانتی‌گراد میباشد".format(" و ".join(
-                        location), tr_single_date(date_list[0]), " و ".join(tr_time(time_iso, tokens, labels)), result)
+                    generated_sentence = "حداقل دمای شهرهای {} در {} {}، {} درجه‌ی سانتی‌گراد میباشد".format(" و ".join(
+                        location), tr_single_date(date_list[0]), " و ".join(tr_time(time_iso, tokens, labels)), round(float(result)))
             else:
                 result = location[min_max_func(res)]
                 if min_max_func == np.argmax:
@@ -1324,6 +1328,7 @@ class Weather:
                     generated_sentence = "سردترین شهر بین شهرهای {} در زمان {} در {}، {} است".format(" و ".join(
                         location), " و ".join(tr_time(time_iso, tokens, labels)), tr_single_date(date_list[0]), result)
             return result, generated_sentence
+        return None, None
 
     def mean_handler(self, question, tokens, labels, mean_func, time_iso, date_list, location, force_temp=True):
         t = len(time_iso)
@@ -1342,7 +1347,7 @@ class Weather:
                                           datetime.time(23, 0)),
             )
             mean_ = mean_func(temp["temp"].to_numpy())
-            return "%4.2f" % mean_, "میانگین دمای هوای {}، {}، {} درجه سانتی‌گراد است".format(location[0], tr_single_date(date_list[0]), "%4.2f" % mean_)
+            return "%4.2f" % mean_, "میانگین دمای هوای {}، {}، {} درجه‌ی سانتی‌گراد است".format(location[0], tr_single_date(date_list[0]), round(mean_))
         # t0or1 d1 l>=2
         if (t == 0 or t == 1) and d == 1 and l >= 2:
             res = []
@@ -1358,7 +1363,7 @@ class Weather:
             for i, lc in enumerate(location):
                 res.append("%4.2f" % np.mean(self.getCityWeather(
                     lc, datetime.datetime.combine(date_list[0].date(), time_iso[0]))["temp"]))
-                generated_sentence.append("میانگین دمای هوای {} {}، {} درجه سانتی‌گراد است".format(
+                generated_sentence.append("میانگین دمای هوای {} {}، {} درجه‌ی سانتی‌گراد است".format(
                     lc, tr_single_date(date_list[0]), res[i]))
             return res, " و ".join(generated_sentence)
 
@@ -1369,7 +1374,7 @@ class Weather:
                     np.min(date_list).date(), datetime.time(1, 0)),
                 datetime.datetime.combine(np.max(date_list).date(), datetime.time(23, 59)))["temp"]
             result = "%4.2f" % mean_func(res)
-            return result, 'میانگین دمای هوای {} در {}، {} درجه سانتی‌گراد است'.format(location[0], " و ".join(tr_date(date_list, tokens, labels)), result)
+            return result, 'میانگین دمای هوای {} در {}، {} درجه‌ی سانتی‌گراد است'.format(location[0], " و ".join(tr_date(date_list, tokens, labels)), result)
 
         # t0 d>=2 l1
         if t == 1 and d >= 2 and l == 1:
@@ -1378,8 +1383,8 @@ class Weather:
                 res.append(self.getCityWeather(
                     location[0], datetime.datetime.combine(d.date(), time_iso[0]))["temp"])
             result = "%4.2f" % mean_func(res)
-            generated_sentence = 'میانگین دمای هوای {} {} {}، {} درجه سانتی‌گراد می‌باشد'.format(location[0], " و ".join(tr_date(date_list, tokens, labels)),
-                                                                                                 tr_single_time(time_iso[0]), result)
+            generated_sentence = 'میانگین دمای هوای {} {} {}، {} درجه‌ی سانتی‌گراد می‌باشد'.format(location[0], " و ".join(tr_date(date_list, tokens, labels)),
+                                                                                                   tr_single_time(time_iso[0]), result)
             return result, generated_sentence
         # t>=2 d1 l1
         if t >= 2 and d == 1 and l == 1:
@@ -1388,8 +1393,8 @@ class Weather:
                 res.append(self.getCityWeather(
                     location[0], datetime.datetime.combine(date_list[0].date(), tim))["temp"])
             result = "%4.2f" % mean_func(res)
-            generated_sentence = 'میانگین دمای هوای {} {} {}، {} درجه سانتی‌گراد می‌باشد'.format(location[0], " و ".join(tr_time(time_iso, tokens, labels)),
-                                                                                                 tr_single_date(date_list[0]), result)
+            generated_sentence = 'میانگین دمای هوای {} {} {}، {} درجه‌ی سانتی‌گراد می‌باشد'.format(location[0], " و ".join(tr_time(time_iso, tokens, labels)),
+                                                                                                   tr_single_date(date_list[0]), result)
 
             return result, generated_sentence
         # t0or1 d==l
@@ -1422,6 +1427,8 @@ class Weather:
             generated_sentence = "میانگین دمای هوای شهرهای {} {} {}، {} درجه سانتی‌گراد است".format(" و ".join(
                 location), " و ".join(tr_time(time_iso, tokens, labels)), tr_single_date(date_list[0]), result)
             return result, generated_sentence
+        return None, None
+
 
     def difference_handler(self, question, tokens, labels, time_iso, date_list, location):
         t = len(time_iso)
@@ -1443,13 +1450,15 @@ class Weather:
                     lc, datetime.datetime.combine(date_list[0].date(), time_iso[0]))["temp"])
             if l == 2:
                 result = "%4.2f" % np.abs(np.diff(res))[0]
-                generated_sentence = "اختلاف دمای شهرهای {} {} {} {} درجه سانتی‌گراد می‌باشد".format(" و ".join(
-                    location), tr_single_date(date_list[0]), tr_single_time(time_iso[0]), result)
+                result2 = "%d" % np.abs(np.diff(res))[0]
+                generated_sentence = "اختلاف دمای شهرهای {} {} {} {} درجه‌ی سانتی‌گراد می‌باشد".format(" و ".join(
+                    location), tr_single_date(date_list[0]), tr_single_time(time_iso[0]), result2)
                 return result, generated_sentence
             else:
                 result = np.abs(np.diff(res))
-                generated_sentence = "اختلاف دمای شهرهای {} {} {} {} درجه سانتی‌گراد می‌باشد".format(" و ".join(
-                    location), tr_single_date(date_list[0]), tr_single_time(time_iso[0]), " و ".join(result))
+                result2 = ["%d" % round(r) for r in result]
+                generated_sentence = "اختلاف دمای شهرهای {} {} {} {} درجه‌ی سانتی‌گراد می‌باشد".format(" و ".join(
+                    location), tr_single_date(date_list[0]), tr_single_time(time_iso[0]), " و ".join(result2))
                 return result, generated_sentence
 
         # t0 d>=2 l1
@@ -1542,3 +1551,4 @@ class Weather:
                 generated_sentence = "اختلاف دمای {} {} {}، {} درجه سانتی‌گراد میباشد".format(" و ".join(
                     tr_time(time_iso, tokens, labels)), " و ".join(location), tr_single_date(date_list[0]), " و ".join(result))
                 return result, generated_sentence
+        return None, None
