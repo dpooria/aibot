@@ -1,5 +1,5 @@
 A simple telegram robot to answer questions in 4 predefined categories in persian language (Calendar, Time, Religious Times, Weather)
-For NLP we trained two models based on Parsbert, one for calssification and one for NER.
+For NLP we trained two models based on Parsbert (https://github.com/hooshvare/parsbert), one for calssification and one for NER.
 Classifier https://colab.research.google.com/drive/18n2hKbVstr6ycq49BB9FSUqYKdkioo_z
  (Dataset: https://drive.google.com/file/d/1McGJhSnSOdohpBQvPT91-NokWJwqkOVn/view?usp=sharing)
  
