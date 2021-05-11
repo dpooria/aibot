@@ -119,8 +119,8 @@ df_province = pd.read_csv(os.path.join(abs_path, "database/provinces.csv"))
 
 
 def get_city_info(cityName):
-    openweatherapi_5dayforecast_url = "http://api.openweathermap.org/data/2.5/forecast?q={}&APPID=ee41144a3fc05599947c9ffe87e12bd4&units=metric&lang=fa&cnt=1"
-    eng_openweatherapi = "http://api.openweathermap.org/data/2.5/forecast?q={}&APPID=ee41144a3fc05599947c9ffe87e12bd4&units=metric&cnt=1"
+    openweatherapi_5dayforecast_url = "http://api.openweathermap.org/data/2.5/forecast?q={}&APPID=APITOKEN&units=metric&lang=fa&cnt=1"
+    eng_openweatherapi = "http://api.openweathermap.org/data/2.5/forecast?q={}&APPID=APITOKEN&units=metric&cnt=1"
     try:
         data = requests.get(
             openweatherapi_5dayforecast_url.format(cityName)).json()
