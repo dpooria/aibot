@@ -1,19 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# This program is dedicated to the public domain under the CC0 license.
-
-"""
-Simple Bot to reply to Telegram messages.
-
-First, a few handler functions are defined. Then, those functions are passed to
-the Dispatcher and registered at their respective places.
-Then, the bot is started and runs until we press Ctrl-C on the command line.
-
-Usage:
-Basic Echobot example, repeats messages.
-Press Ctrl-C on the command line or send a signal to the process to stop the
-bot.
-"""
 
 import logging
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
@@ -199,13 +183,10 @@ def error(update, context):
 
 def main():
     """Start the bot."""
-    # Create the Updater and pass it your bot's token.
-    # Make sure to set use_context=True to use the new context based callbacks
-    # Post version 12 this will no longer be necessary
-
+    
     REQUEST_KWARGS = {'proxy_url': 'http://127.0.0.1:8118'}
     updater = Updater(
-        "1400856218:AAGt6WPlRxL-FmcB3dhO7PS-7ErVxCIni9c", use_context=True, request_kwargs=REQUEST_KWARGS)
+        "****", use_context=True, request_kwargs=REQUEST_KWARGS)
 
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
@@ -225,10 +206,6 @@ def main():
 
     # Start the Bot
     updater.start_polling()
-
-    # Run the bot until you press Ctrl-C or the process receives SIGINT,
-    # SIGTERM or SIGABRT. This should be used most of the time, since
-    # start_polling() is non-blocking and will stop the bot gracefully.
     updater.idle()
 
 
