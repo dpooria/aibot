@@ -23,8 +23,8 @@ from aibot_utils import location_handler, unique_without_sort
 # Class to handle weather api
 class Weather:
     def __init__(self):
-        self.appid = "ee41144a3fc05599947c9ffe87e12bd4"
-        self.openweatherapi_5dayforecast_url = "http://api.openweathermap.org/data/2.5/forecast?q={}&APPID=ee41144a3fc05599947c9ffe87e12bd4&units=metric&lang=fa"
+        self.appid = "API_TOKEN"#insert the token here
+        self.openweatherapi_5dayforecast_url = "http://api.openweathermap.org/data/2.5/forecast?q={}&APPID=APITOKEN&units=metric&lang=fa"
         self.eng_openweatherapi = "http://api.openweathermap.org/data/2.5/forecast?q={}&APPID=ee41144a3fc05599947c9ffe87e12bd4&units=metric"
         self.adhan = Adhan()
 
@@ -352,8 +352,8 @@ class Weather:
 
     @ staticmethod
     def get_city_info(cityName):
-        openweatherapi_5dayforecast_url = "http://api.openweathermap.org/data/2.5/forecast?q={}&APPID=ee41144a3fc05599947c9ffe87e12bd4&units=metric&lang=fa&cnt=1"
-        eng_openweatherapi = "http://api.openweathermap.org/data/2.5/forecast?q={}&APPID=ee41144a3fc05599947c9ffe87e12bd4&units=metric&cnt=1"
+        openweatherapi_5dayforecast_url = "http://api.openweathermap.org/data/2.5/forecast?q={}&APPID=APITOKEN&units=metric&lang=fa&cnt=1"
+        eng_openweatherapi = "http://api.openweathermap.org/data/2.5/forecast?q={}&APPID=APITOKEN&units=metric&cnt=1"
         try:
             data = requests.get(
                 openweatherapi_5dayforecast_url.format(cityName)).json()
