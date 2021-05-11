@@ -3,7 +3,7 @@ import logging
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler
 from aibot import BOT
-import ftransc.core as ft
+#import ftransc.core as ft
 import time
 
 type_dict = {"-1": "پرسش خارج از توان",
@@ -80,52 +80,52 @@ def echo(update, context):
     #     "ner_labelling/" + file_name + ".csv")
 
 
-def transcribe_voice(update, context):
-    voice = context.bot.getFile(update.message.voice.file_id)
+# def transcribe_voice(update, context):
+#     voice = context.bot.getFile(update.message.voice.file_id)
 
-    file_name = "userID{}messageID{}".format(
-        update.message.chat.username, update.message.message_id)
-    voice.download('voice/temp.ogg')
-    time.sleep(1)
-    ft.transcode("voice/temp.ogg", 'wav', output_folder="voice")  # file.wav
+#     file_name = "userID{}messageID{}".format(
+#         update.message.chat.username, update.message.message_id)
+#     voice.download('voice/temp.ogg')
+#     time.sleep(1)
+#     ft.transcode("voice/temp.ogg", 'wav', output_folder="voice")  # file.wav
 
-    res, response, question, generated_sentence = bot.aibot_voice(
-        "voice/temp.wav")
-    res_str = st_res_show.format(type_dict[res["type"][0]], res["city"], res["date"],
-                                 res["time"], res["religious_time"], res["calendar_type"], res["event"], res["result"])
+#     res, response, question, generated_sentence = bot.aibot_voice(
+#         "voice/temp.wav")
+#     res_str = st_res_show.format(type_dict[res["type"][0]], res["city"], res["date"],
+#                                  res["time"], res["religious_time"], res["calendar_type"], res["event"], res["result"])
 
-    keyboard = [[
-        InlineKeyboardButton("👍", callback_data='positive'),
-        InlineKeyboardButton("👎", callback_data='negative'),
-    ]]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+#     keyboard = [[
+#         InlineKeyboardButton("👍", callback_data='positive'),
+#         InlineKeyboardButton("👎", callback_data='negative'),
+#     ]]
+#     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    update.message.reply_text(res_str, reply_markup=reply_markup)
-    update.message.reply_text(
-        "پرسش شما:\n{}\nپاسخ تولید شده:\n{}".format(question, generated_sentence))
+#     update.message.reply_text(res_str, reply_markup=reply_markup)
+#     update.message.reply_text(
+#         "پرسش شما:\n{}\nپاسخ تولید شده:\n{}".format(question, generated_sentence))
 
-    with open("voice/temp.wav".format(file_name), mode='wb') as f:
-        f.write(response.content)
+#     with open("voice/temp.wav".format(file_name), mode='wb') as f:
+#         f.write(response.content)
 
-    # ft.transcode("voice/{}res.wav".format(file_name),
-    #              "ogg", output_folder="voice")
+#     # ft.transcode("voice/{}res.wav".format(file_name),
+#     #              "ogg", output_folder="voice")
 
-    ft.transcode("voice/temp.wav".format(file_name),
-                 "ogg", output_folder="voice")
+#     ft.transcode("voice/temp.wav".format(file_name),
+#                  "ogg", output_folder="voice")
 
-    # context.bot.send_audio(update.message.chat_id, audio=open(
-    #     "voice/{}res.ogg".format(file_name), "rb"))
+#     # context.bot.send_audio(update.message.chat_id, audio=open(
+#     #     "voice/{}res.ogg".format(file_name), "rb"))
 
-    context.bot.send_audio(update.message.chat_id, audio=open(
-        "voice/temp.ogg", "rb"))
+#     context.bot.send_audio(update.message.chat_id, audio=open(
+#         "voice/temp.ogg", "rb"))
 
-    with open("collect/{}.txt".format(file_name), "w") as f_res:
-        print(question, file=f_res)
-        print("\n", file=f_res)
-        print(res_str, file=f_res)
-        print("\n", file=f_res)
-        print(res, file=f_res)
-        print("\n\n\n", file=f_res)
+#     with open("collect/{}.txt".format(file_name), "w") as f_res:
+#         print(question, file=f_res)
+#         print("\n", file=f_res)
+#         print(res_str, file=f_res)
+#         print("\n", file=f_res)
+#         print(res, file=f_res)
+#         print("\n\n\n", file=f_res)
 
 
 def help(update, context):
@@ -199,7 +199,7 @@ def main():
 
     # on noncommand i.e message - echo the message on Telegram
     dp.add_handler(MessageHandler(Filters.text, echo))
-    dp.add_handler(MessageHandler(Filters.voice, transcribe_voice))
+#     dp.add_handler(MessageHandler(Filters.voice, transcribe_voice))
 
     # log all errors
     dp.add_error_handler(error)
