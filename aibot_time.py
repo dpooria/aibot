@@ -1,13 +1,14 @@
-
 import datetime
 import re
-from aibot_date import convertStr2num, export_date
-import numpy as np
-from aibot_utils import cleaning, location_handler, mix_tdl, unique_without_sort
-from adhanAPI import Adhan
-from hazm import word_tokenize
-from vocab import am_pm_dict, time_literals, minute_literals, perstr_to_num
 from copy import copy
+
+import numpy as np
+from hazm import word_tokenize
+
+from adhanAPI import Adhan
+from aibot_date import convertStr2num, export_date
+from aibot_utils import cleaning, location_handler, mix_tdl, unique_without_sort
+from vocab import am_pm_dict, minute_literals, perstr_to_num, time_literals
 
 adhan = Adhan()
 
@@ -34,7 +35,7 @@ def fix_hour_ampm(st, hour):
 
 def hour_min_exporter(st, force_return=False):
     # try ساعت + num
-    mtch = re.findall("ساعت \d+", st)
+    mtch = re.findall(r"ساعت \d+", st)
     if mtch:
         mtch_minute = st.find("دقیقه")
         minute = 0
@@ -48,7 +49,7 @@ def hour_min_exporter(st, force_return=False):
                 minute = minute_literals[min_liter[0]]
         else:
             # try num + دقیقه
-            mtch_min = re.findall("\d+ دقیقه", st)
+            mtch_min = re.findall(r"\d+ دقیقه", st)
             if mtch_min:
                 try:
                     minute = int(mtch_min[0].strip("دقیقه"))
@@ -74,7 +75,7 @@ def hour_min_exporter(st, force_return=False):
     mtch = st.find("ساعت")
     if mtch != -1:
         h_n = []
-        probable_hour = st[mtch + len("ساعت"):]
+        probable_hour = st[mtch + len("ساعت") :]
         for w in word_tokenize(probable_hour):
             if w in perstr_to_num.keys():
                 h_n.append(w)
@@ -98,7 +99,7 @@ def hour_min_exporter(st, force_return=False):
                 except Exception:
                     pass
             # try num + دقیقه
-            mtch_m = re.findall("\d+ دقیقه", st)
+            mtch_m = re.findall(r"\d+ دقیقه", st)
             if mtch_m:
                 try:
                     minute = int(mtch_m[0].strip("دقیقه"))
@@ -154,42 +155,45 @@ def hour_min_exporter(st, force_return=False):
             t_l.append(tl)
     if t_l:
         # try num + tl
-        mtch = re.findall("\d+ {}".format(t_l[0]), st)
+        mtch = re.findall(r"\d+ {}".format(t_l[0]), st)
         if mtch:
             try:
                 h = int(mtch[0].strip(t_l[0]))
-                t = datetime.datetime.now() + datetime.timedelta(hours=h *
-                                                                 time_literals[t_l[0]])
+                t = datetime.datetime.now() + datetime.timedelta(
+                    hours=h * time_literals[t_l[0]]
+                )
                 hour, minute = t.hour, t.minute
                 return fix_hour_ampm(st, hour), minute
             except Exception:
                 pass
         # try writed number + tl
         h_n = []
-        probable_number = st[:st.find(t_l[0])]
+        probable_number = st[: st.find(t_l[0])]
         for n in perstr_to_num.keys():
             if n in word_tokenize(probable_number):
                 h_n.append(n)
         if h_n:
             try:
                 h = convertStr2num(" ".join(h_n))
-                t = datetime.datetime.now() + datetime.timedelta(hours=h *
-                                                                 time_literals[t_l[0]])
+                t = datetime.datetime.now() + datetime.timedelta(
+                    hours=h * time_literals[t_l[0]]
+                )
                 hour, minute = t.hour, t.minute
                 return fix_hour_ampm(st, hour), minute
             except Exception:
                 pass
         # if none of the above return tl itself
         try:
-            t = datetime.datetime.now() + \
-                datetime.timedelta(hours=time_literals[t_l[0]])
+            t = datetime.datetime.now() + datetime.timedelta(
+                hours=time_literals[t_l[0]]
+            )
             hour, minute = t.hour, t.minute
             return fix_hour_ampm(st, hour), minute
         except Exception:
             pass
     # let's just return a number as hour:
     if force_return:
-        mtch = re.findall("\d+", st)
+        mtch = re.findall(r"\d+", st)
         if mtch:
             hour = int(mtch[0])
             return fix_hour_ampm(st, hour), 0
@@ -200,13 +204,13 @@ def hour_min_exporter(st, force_return=False):
 def adhan_handler(time_list, tokens, labels, question):
     res = []
     url = []
-    if time_list == None or len(time_list) == 1:
+    if time_list is None or len(time_list) == 1:
         adhan_names = adhan.export_adhan_names(question)
         if adhan_names:
             exportdat = export_date(question, tokens, labels)
             date_list = []
             for d in exportdat:
-                if d[0] != None:
+                if d[0] is not None:
                     date_list.append(d[0])
             date_list = unique_without_sort(date_list)
             if not date_list:
@@ -234,7 +238,7 @@ def adhan_handler(time_list, tokens, labels, question):
             exportdat = export_date(question, tokens, labels)
             date_list = []
             for d in exportdat:
-                if d[0] != None:
+                if d[0] is not None:
                     date_list.append(d[0])
             if not date_list:
                 date_list.append(datetime.datetime.today())
@@ -250,7 +254,7 @@ def adhan_handler(time_list, tokens, labels, question):
             exportdat = export_date(question, tokens, labels)
             date_list = []
             for d in exportdat:
-                if d[0] != None:
+                if d[0] is not None:
                     date_list.append(d[0])
             if not date_list:
                 date_list.append(datetime.datetime.today())
@@ -270,11 +274,16 @@ def adhan_handler(time_list, tokens, labels, question):
 def export_time_single(st_arr, st=None, force_return=False):
     not_st = False
     if not st:
-        st = cleaning("".join(st_arr).replace("-", ":").replace("/",
-                                                                ":").replace("و", ":").replace(",", ":"))
+        st = cleaning(
+            "".join(st_arr)
+            .replace("-", ":")
+            .replace("/", ":")
+            .replace("و", ":")
+            .replace(",", ":")
+        )
         not_st = True
     # try hh:mm format
-    mtch = re.findall("\d+[:]\d+", st)
+    mtch = re.findall(r"\d+[:]\d+", st)
     if mtch:
         t = mtch[0].split(":")
         try:
@@ -290,10 +299,10 @@ def export_time_single(st_arr, st=None, force_return=False):
     if not_st:
         st = cleaning(" ".join(st_arr))
     hour, minute = hour_min_exporter(st, force_return=force_return)
-    if hour == None:
+    if hour is None:
         # hour = datetime.datetime.now().hour
         return None
-    if minute == None:
+    if minute is None:
         # minute = datetime.datetime.now().minute
         return None
     return datetime.time(hour, minute)
@@ -309,10 +318,9 @@ def export_time(question, tokens, labels):
         st_arr = word_tokenize(question)
         t_ = export_time_single(st_arr, question)
 
-        if t_ == None:
-            res, url, adhan_names = adhan_handler(
-                None, tokens, labels, question)
-            if res != None:
+        if t_ is None:
+            res, url, adhan_names = adhan_handler(None, tokens, labels, question)
+            if res is not None:
                 return res, True, url, adhan_names
 
         return [t_], False, None, None
@@ -323,8 +331,7 @@ def export_time(question, tokens, labels):
         for i in range(n):
             st_arr = []
             if i < n - 1:
-                ida = i_time[np.where(
-                    (i_time > b_time[i]) & (i_time < b_time[i + 1]))]
+                ida = i_time[np.where((i_time > b_time[i]) & (i_time < b_time[i + 1]))]
             else:
                 ida = i_time[np.where(i_time > b_time[i])]
             for t in np.r_[b_time[i], ida]:
@@ -334,14 +341,13 @@ def export_time(question, tokens, labels):
         is_adhan_needed = False
         new_t = copy(t_)
         for i, t in enumerate(t_):
-            if t_[i] == None:
+            if t_[i] is None:
                 new_t[i] = time_texts[i]
                 is_adhan_needed = True
         if is_adhan_needed:
-            res, url, adhan_names = adhan_handler(
-                new_t, tokens, labels, question)
-            if res != None:
-                if not None in res:
+            res, url, adhan_names = adhan_handler(new_t, tokens, labels, question)
+            if res is not None:
+                if None not in res:
                     return res, True, url, adhan_names
         return t_, False, None, None
     else:
@@ -349,11 +355,10 @@ def export_time(question, tokens, labels):
         for t in np.r_[b_time, i_time]:
             st_arr.append(tokens[int(t)])
         t_ = export_time_single(st_arr, force_return=True)
-        if t_ == None:
+        if t_ is None:
             t_ = export_time_single(word_tokenize(question), question)
-        if t_ == None:
-            res, url, adhan_names = adhan_handler(
-                None, tokens, labels, question)
-            if res != None:
+        if t_ is None:
+            res, url, adhan_names = adhan_handler(None, tokens, labels, question)
+            if res is not None:
                 return res, True, url, adhan_names
         return [t_], False, None, None

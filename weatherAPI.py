@@ -1,29 +1,32 @@
-
+import datetime
 import time
-import requests
-from translate import translator
+
 import numpy as np
 import pandas as pd
-import datetime
-from aibot_date import export_date, gregorian_to_jalali, format_jalali_date
-from aibot_time import export_time
+import requests
+from translate import translator
+
 from adhanAPI import Adhan
-from vocab import (
-    USER_CITY, weather_description_asked,
-    weather_temperature_asked,
-    tr_weather_description,
-    day_asked,
-    time_asked,
-    weather_logical,
-    temp_asked, tr_null_cities)
-from reply_gen import tr_date, tr_time, tr_single_date, tr_single_time
+from aibot_date import export_date, format_jalali_date, gregorian_to_jalali
+from aibot_time import export_time
 from aibot_utils import location_handler, unique_without_sort
+from reply_gen import tr_date, tr_single_date, tr_single_time, tr_time
+from vocab import (
+    USER_CITY,
+    temp_asked,
+    time_asked,
+    tr_null_cities,
+    tr_weather_description,
+    weather_description_asked,
+    weather_logical,
+    weather_temperature_asked,
+)
 
 
 # Class to handle weather api
 class Weather:
     def __init__(self):
-        self.appid = "API_TOKEN"#insert the token here
+        self.appid = "API_TOKEN"  # insert the token here
         self.openweatherapi_5dayforecast_url = "http://api.openweathermap.org/data/2.5/forecast?q={}&APPID=APITOKEN&units=metric&lang=fa"
         self.eng_openweatherapi = "http://api.openweathermap.org/data/2.5/forecast?q={}&APPID=ee41144a3fc05599947c9ffe87e12bd4&units=metric"
         self.adhan = Adhan()
@@ -31,15 +34,15 @@ class Weather:
     def get_city_5dayforecast_weather(self, cityName):
         try:
             data = requests.get(
-                self.openweatherapi_5dayforecast_url.format(cityName)).json()
-        except:
+                self.openweatherapi_5dayforecast_url.format(cityName)
+            ).json()
+        except Exception:
             return pd.DataFrame()
         if data["cod"] == "200":
             weathers = []
             for w_list in data["list"]:
                 tmp = w_list["main"]
-                tmp["dt_txt"] = datetime.datetime.fromisoformat(
-                    w_list["dt_txt"])
+                tmp["dt_txt"] = datetime.datetime.fromisoformat(w_list["dt_txt"])
                 tmp["description"] = w_list["weather"][0]["description"]
                 tmp["main"] = w_list["weather"][0]["main"]
                 weathers.append(tmp)
@@ -51,14 +54,14 @@ class Weather:
                     cityname_eng = tr_null_cities[cityName]
                 else:
                     cityname_eng = translator("fa", "en", cityName)[0][0][0]
-                data = requests.get(
-                    self.eng_openweatherapi.format(cityname_eng)).json()
+                data = requests.get(self.eng_openweatherapi.format(cityname_eng)).json()
                 if data["cod"] == "200":
                     weathers = []
                     for w_list in data["list"]:
                         tmp = w_list["main"]
                         tmp["dt_txt"] = datetime.datetime.fromisoformat(
-                            w_list["dt_txt"])
+                            w_list["dt_txt"]
+                        )
                         tmp["description"] = w_list["weather"][0]["description"]
                         tmp["main"] = w_list["weather"][0]["main"]
                         weathers.append(tmp)
@@ -92,12 +95,22 @@ class Weather:
         return city_weather.iloc[c1:c2]
 
     def get_answer(self, question, tokens, labels):
-        answer = {'type': ['1'], 'city': [], 'date': [],
-                  'time': [], 'religious_time': [], 'calendar_type': [], 'event': [], 'api_url': [], 'result': []}
+        answer = {
+            "type": ["1"],
+            "city": [],
+            "date": [],
+            "time": [],
+            "religious_time": [],
+            "calendar_type": [],
+            "event": [],
+            "api_url": [],
+            "result": [],
+        }
         generated_sentence = ""
 
         location = unique_without_sort(
-            location_handler(question, tokens, labels, check_validation=False))
+            location_handler(question, tokens, labels, check_validation=False)
+        )
         date_list = []
         date_list_jalali = []
         exportdate = export_date(question, tokens, labels)
@@ -106,7 +119,7 @@ class Weather:
         for d in exportdate:
             if d[0]:
                 date_list.append(d[0])
-            if (not d[1][0]) and (not d[1][1]) and (type(d[1][2]) != bool):
+            if (not d[1][0]) and (not d[1][1]) and not isinstance(d[1][2], bool):
                 is_there_any_events = True
                 events.append(d[1][2])
         answer["event"] = events
@@ -136,7 +149,8 @@ class Weather:
             for d in ignored_date:
                 ig.append(tr_single_date(d))
             generated_sentence = "دیتای بیشتر از ۵ روز آینده و روزهای گذشته وجود ندارد، از تاریخ {} صرف نظر شده است".format(
-                " و ".join(ig))
+                " و ".join(ig)
+            )
 
         if len(new_date_list) == 0:
             new_date_list = [today]
@@ -152,15 +166,16 @@ class Weather:
             l_n = 1
 
         api_url = []
-        for l in location:
-            api_url.append(self.openweatherapi_5dayforecast_url.format(l))
+        for loc in location:
+            api_url.append(self.openweatherapi_5dayforecast_url.format(loc))
         answer["api_url"] = api_url
         answer["city"] = location
 
         time_list = []
         time_iso = []
         exporttime, is_adhan, adhan_url, adhan_names = export_time(
-            question, tokens, labels)
+            question, tokens, labels
+        )
         if is_adhan:
             answer["religious_time"] = adhan_names
             if adhan_url:
@@ -169,7 +184,7 @@ class Weather:
                         answer["api_url"].append(au)
 
         for t in exporttime:
-            if t != None:
+            if t is not None:
                 time_list.append(t.strftime("%H:%M"))
                 time_iso.append(t)
 
@@ -181,8 +196,9 @@ class Weather:
         if not logicals:
             logicals = self.check_logical(question)
         if logicals:
-            result, n_generated_sentence = self.logical_handler(question, tokens, labels,
-                                                                logicals, time_iso, date_list, location)
+            result, n_generated_sentence = self.logical_handler(
+                question, tokens, labels, logicals, time_iso, date_list, location
+            )
             if generated_sentence:
                 generated_sentence = generated_sentence + "." + n_generated_sentence
             else:
@@ -214,16 +230,19 @@ class Weather:
             date = []
             if t_n == d_n:
                 for i in range(t_n):
-                    date.append(datetime.datetime.combine(
-                        date_list[i].date(), time_iso[i]))
+                    date.append(
+                        datetime.datetime.combine(date_list[i].date(), time_iso[i])
+                    )
             elif d_n > t_n:
                 for i in range(d_n):
-                    date.append(datetime.datetime.combine(
-                        date_list[i].date(), time_iso[0]))
+                    date.append(
+                        datetime.datetime.combine(date_list[i].date(), time_iso[0])
+                    )
             else:
                 for i in range(t_n):
-                    date.append(datetime.datetime.combine(
-                        date_list[0].date(), time_iso[i]))
+                    date.append(
+                        datetime.datetime.combine(date_list[0].date(), time_iso[i])
+                    )
             ln_d = len(date)
             if l_n == 1 and ln_d == 1:
                 result = self.getCityWeather(location[0], date[0])
@@ -232,26 +251,41 @@ class Weather:
                         res = tr_weather_description[result["main"]]
                         answer["result"] = res
                         n_generated_sentence = "هوای {} {} {}، {} است".format(
-                            location[0], tr_single_date(date_list[0]), tr_single_time(time_iso[0]), res)
+                            location[0],
+                            tr_single_date(date_list[0]),
+                            tr_single_time(time_iso[0]),
+                            res,
+                        )
                         if not generated_sentence:
                             generated_sentence = n_generated_sentence
                         else:
-                            generated_sentence = generated_sentence + "." + n_generated_sentence
+                            generated_sentence = (
+                                generated_sentence + "." + n_generated_sentence
+                            )
                     else:
                         res = str(result["temp"])
                         answer["result"] = res
-                        n_generated_sentence = "دمای هوای {} {} {}، {} درجه‌ی سانتی‌گراد است".format(
-                            location[0], tr_single_date(date_list[0]), tr_single_time(time_iso[0]), round(result["temp"]))
+                        n_generated_sentence = (
+                            "دمای هوای {} {} {}، {} درجه‌ی سانتی‌گراد است".format(
+                                location[0],
+                                tr_single_date(date_list[0]),
+                                tr_single_time(time_iso[0]),
+                                round(result["temp"]),
+                            )
+                        )
                         if generated_sentence:
-                            generated_sentence = generated_sentence + "." + n_generated_sentence
+                            generated_sentence = (
+                                generated_sentence + "." + n_generated_sentence
+                            )
                         else:
                             generated_sentence = n_generated_sentence
 
             elif ln_d >= 2 and l_n == 1:
                 answer["result"] = []
                 if generated_sentence:
-                    generated_sentence = generated_sentence + \
-                        "." + "هوای {} ".format(location[0])
+                    generated_sentence = (
+                        generated_sentence + "." + "هوای {} ".format(location[0])
+                    )
                 else:
                     generated_sentence = "هوای {} ".format(location[0])
                 s = 0
@@ -261,17 +295,29 @@ class Weather:
                         if is_weather_description_asked:
                             res1 = tr_weather_description[result["main"]]
                             answer["result"].append(res1)
-                            n_generated_sentence = "{} {}، {} ،است".format(tr_single_date(
-                                dat.date()), tr_single_time(dat.time()), res1)
+                            n_generated_sentence = "{} {}، {} ،است".format(
+                                tr_single_date(dat.date()),
+                                tr_single_time(dat.time()),
+                                res1,
+                            )
                         else:
                             res1 = str(result["temp"])
                             answer["result"].append(res1)
-                            n_generated_sentence = "{} {}، {} ،درجه‌ی سانتی‌گراد است".format(tr_single_date(
-                                dat.date()), tr_single_time(dat.time()), round(float(res1)))
+                            n_generated_sentence = (
+                                "{} {}، {} ،درجه‌ی سانتی‌گراد است".format(
+                                    tr_single_date(dat.date()),
+                                    tr_single_time(dat.time()),
+                                    round(float(res1)),
+                                )
+                            )
                         if s == 0:
-                            generated_sentence = generated_sentence + " " + n_generated_sentence
+                            generated_sentence = (
+                                generated_sentence + " " + n_generated_sentence
+                            )
                         else:
-                            generated_sentence = generated_sentence + " و " + n_generated_sentence
+                            generated_sentence = (
+                                generated_sentence + " و " + n_generated_sentence
+                            )
                         s += 1
 
             elif l_n == ln_d:
@@ -283,21 +329,34 @@ class Weather:
                             res1 = tr_weather_description[result["main"]]
                             answer["result"].append(res1)
                             n_generated_sentence = "هوای {} {} {}، {} است".format(
-                                lc, tr_single_date(dat), tr_single_time(dat.time()), res1)
+                                lc,
+                                tr_single_date(dat),
+                                tr_single_time(dat.time()),
+                                res1,
+                            )
                         else:
                             res1 = str(result["temp"])
                             answer["result"].append(res1)
-                            n_generated_sentence = "دمای هوای {} {} {}، {} درجه‌ی سانتی‌گراد است".format(
-                                lc, tr_single_date(dat), tr_single_time(dat.time()), round(float(res1)))
+                            n_generated_sentence = (
+                                "دمای هوای {} {} {}، {} درجه‌ی سانتی‌گراد است".format(
+                                    lc,
+                                    tr_single_date(dat),
+                                    tr_single_time(dat.time()),
+                                    round(float(res1)),
+                                )
+                            )
                         if generated_sentence:
-                            generated_sentence = generated_sentence + " و " + n_generated_sentence
+                            generated_sentence = (
+                                generated_sentence + " و " + n_generated_sentence
+                            )
                         else:
                             generated_sentence = n_generated_sentence
 
             elif l_n >= 2 and ln_d == 1:
                 answer["result"] = []
                 n_generated_sentence = "{} {} هوای".format(
-                    tr_single_date(date[0]), tr_single_time(date[0].time()))
+                    tr_single_date(date[0]), tr_single_time(date[0].time())
+                )
                 if generated_sentence:
                     generated_sentence = generated_sentence + "." + n_generated_sentence
                 else:
@@ -314,16 +373,22 @@ class Weather:
                             res1 = str(result["temp"])
                             answer["result"].append(res1)
                             n_generated_sentence = "{} {} درجه‌ی سانتی‌گراد است".format(
-                                lc, res1)
+                                lc, res1
+                            )
                         if s == 0:
-                            generated_sentence = generated_sentence + " " + n_generated_sentence
+                            generated_sentence = (
+                                generated_sentence + " " + n_generated_sentence
+                            )
                         else:
-                            generated_sentence = generated_sentence + " و " + n_generated_sentence
+                            generated_sentence = (
+                                generated_sentence + " و " + n_generated_sentence
+                            )
                         s += 1
             else:
                 answer["result"] = []
                 n_generated_sentence = "{} {} هوای".format(
-                    tr_single_date(date[0]), tr_single_time(date[0].time()))
+                    tr_single_date(date[0]), tr_single_time(date[0].time())
+                )
                 if generated_sentence:
                     generated_sentence = generated_sentence + "." + n_generated_sentence
                 else:
@@ -340,32 +405,35 @@ class Weather:
                             res1 = str(result["temp"])
                             answer["result"].append(res1)
                             n_generated_sentence = "{} {} درجه‌ی سانتی‌گراد است".format(
-                                lc, round(float(res1)))
+                                lc, round(float(res1))
+                            )
                         if s == 0:
-                            generated_sentence = generated_sentence + " " + n_generated_sentence
+                            generated_sentence = (
+                                generated_sentence + " " + n_generated_sentence
+                            )
                         else:
-                            generated_sentence = generated_sentence + " و " + n_generated_sentence
+                            generated_sentence = (
+                                generated_sentence + " و " + n_generated_sentence
+                            )
                         s += 1
         if not isinstance(answer["result"], list):
             answer["result"] = [answer["result"]]
         return answer, generated_sentence
 
-    @ staticmethod
+    @staticmethod
     def get_city_info(cityName):
         openweatherapi_5dayforecast_url = "http://api.openweathermap.org/data/2.5/forecast?q={}&APPID=APITOKEN&units=metric&lang=fa&cnt=1"
         eng_openweatherapi = "http://api.openweathermap.org/data/2.5/forecast?q={}&APPID=APITOKEN&units=metric&cnt=1"
         try:
-            data = requests.get(
-                openweatherapi_5dayforecast_url.format(cityName)).json()
-        except:
+            data = requests.get(openweatherapi_5dayforecast_url.format(cityName)).json()
+        except Exception:
             return None
         if data["cod"] == "200":
             return data["city"]
         else:
             cityname_eng = translator("fa", "en", cityName)[0][0][0]
             try:
-                data = requests.get(
-                    eng_openweatherapi.format(cityname_eng)).json()
+                data = requests.get(eng_openweatherapi.format(cityname_eng)).json()
                 if data["cod"] == "200":
                     return data["city"]
                 else:
@@ -373,7 +441,7 @@ class Weather:
             except Exception:
                 return None
 
-    @ staticmethod
+    @staticmethod
     def check_logical(tokens):
         logicals = []
         for k, v in weather_logical.items():
@@ -381,20 +449,28 @@ class Weather:
                 logicals.append([k, v])
         return logicals
 
-    def logical_handler(self, question, tokens, labels, logicals, time_iso, date_list, location):
+    def logical_handler(
+        self, question, tokens, labels, logicals, time_iso, date_list, location
+    ):
         if len(logicals) == 1 or np.unique(np.array(logicals)[:, 1]).size == 1:
             if logicals[0][1] == "amin" or logicals[0][1] == "amin_abs":
-                result, generated_sentence = self.min_max_handler(question, tokens, labels,
-                                                                  np.argmin, time_iso, date_list, location)
+                result, generated_sentence = self.min_max_handler(
+                    question, tokens, labels, np.argmin, time_iso, date_list, location
+                )
                 return result, generated_sentence
             if logicals[0][1] == "amax" or logicals[0][1] == "amax_abs":
-                result, generated_sentence = self.min_max_handler(question, tokens, labels,
-                                                                  np.argmax, time_iso, date_list, location)
+                result, generated_sentence = self.min_max_handler(
+                    question, tokens, labels, np.argmax, time_iso, date_list, location
+                )
                 return result, generated_sentence
             if logicals[0][1] == "mean":
-                return self.mean_handler(question, tokens, labels, np.mean, time_iso, date_list, location)
+                return self.mean_handler(
+                    question, tokens, labels, np.mean, time_iso, date_list, location
+                )
             if logicals[0][1] == "diff":
-                return self.difference_handler(question, tokens, labels, time_iso, date_list, location)
+                return self.difference_handler(
+                    question, tokens, labels, time_iso, date_list, location
+                )
         else:
             pos = []
             for logc in logicals:
@@ -414,19 +490,49 @@ class Weather:
                     mean_abs.append(lg[1])
 
             if len(amax_amin_diff) == 0 and len(mean_abs) >= 2:
-                return self.mean_abs_q(question, tokens, labels, mean_abs, time_iso, date_list, location)
+                return self.mean_abs_q(
+                    question, tokens, labels, mean_abs, time_iso, date_list, location
+                )
             else:
-                return self.m1d1(question, tokens, labels, mean_abs, amax_amin_diff, time_iso, date_list, location)
+                return self.m1d1(
+                    question,
+                    tokens,
+                    labels,
+                    mean_abs,
+                    amax_amin_diff,
+                    time_iso,
+                    date_list,
+                    location,
+                )
 
-    def m1d1(self, question, tokens, labels, mean_abs_list, diff_max_min, time_iso, date_list, location):
+    def m1d1(
+        self,
+        question,
+        tokens,
+        labels,
+        mean_abs_list,
+        diff_max_min,
+        time_iso,
+        date_list,
+        location,
+    ):
         generated_sentence = ""
-        func_dict = {"amin_abs": np.argmin,
-                     "amax_abs": np.argmax, "mean": np.mean, "amax": np.argmax, "amin": np.argmin, "diff": np.diff}
-        wfunc_dict = {"amin_abs": self.min_max_handler,
-                      "amax_abs": self.min_max_handler, "mean": self.mean_handler}
+        func_dict = {
+            "amin_abs": np.argmin,
+            "amax_abs": np.argmax,
+            "mean": np.mean,
+            "amax": np.argmax,
+            "amin": np.argmin,
+            "diff": np.diff,
+        }
+        wfunc_dict = {
+            "amin_abs": self.min_max_handler,
+            "amax_abs": self.min_max_handler,
+            "mean": self.mean_handler,
+        }
         t = len(time_iso)
         d = len(date_list)
-        l = len(location)
+        nl = len(location)
         result = []
         res = []
         ta = False
@@ -441,33 +547,56 @@ class Weather:
                 mabs_str = "بیشینه"
             else:
                 mabs_str = "میانگین"
-            if (t == 0 or t == 1) and d >= 2 and l == 1:
+            if (t == 0 or t == 1) and d >= 2 and nl == 1:
                 for dat in date_list:
-                    r, _ = func(question, tokens, labels, func_dict[mean_abs_list[0]], time_iso, [
-                                dat], location, True)
+                    r, _ = func(
+                        question,
+                        tokens,
+                        labels,
+                        func_dict[mean_abs_list[0]],
+                        time_iso,
+                        [dat],
+                        location,
+                        True,
+                    )
                     res.append(r)
 
                 if ta or diff_max_min[0] == "diff":
                     if diff_max_min[0] == "diff":
-                        result = np.diff(
-                            np.array(res, dtype="d"))
+                        result = np.diff(np.array(res, dtype="d"))
                         result = ["%4.2f" % r for r in result]
-                        generated_sentence = "اختلاف {} دمای {}، {}، {} درجه سانتی‌گراد است".format(
-                            mabs_str, location[0], " و ".join(tr_date(date_list, tokens, labels)), " و ".join(result))
+                        generated_sentence = (
+                            "اختلاف {} دمای {}، {}، {} درجه سانتی‌گراد است".format(
+                                mabs_str,
+                                location[0],
+                                " و ".join(tr_date(date_list, tokens, labels)),
+                                " و ".join(result),
+                            )
+                        )
                     else:
-                        result = res[func_dict[diff_max_min[0]](
-                            np.array(res, dtype="d"))]
+                        result = res[
+                            func_dict[diff_max_min[0]](np.array(res, dtype="d"))
+                        ]
                         if diff_max_min[0] == "amin":
                             dmn_str = "سردترین"
                         else:
                             dmn_str = "گرمترین"
-                        generated_sentence = "{} {} دمای {} بین {}، {} درجه سانتی‌گراد است".format(
-                            dmn_str, mabs_str, location[0], " و ".join(tr_date(date_list, tokens, labels)), result)
+                        generated_sentence = (
+                            "{} {} دمای {} بین {}، {} درجه سانتی‌گراد است".format(
+                                dmn_str,
+                                mabs_str,
+                                location[0],
+                                " و ".join(tr_date(date_list, tokens, labels)),
+                                result,
+                            )
+                        )
                 else:
-                    result_g = date_list[func_dict[diff_max_min[0]](
-                        np.array(res, dtype="d"))]
+                    result_g = date_list[
+                        func_dict[diff_max_min[0]](np.array(res, dtype="d"))
+                    ]
                     result = gregorian_to_jalali(
-                        result_g.year, result_g.month, result_g.day)
+                        result_g.year, result_g.month, result_g.day
+                    )
                     result = format_jalali_date(result)
                     if diff_max_min[0] == "amin":
                         dmn_str = "سردترین"
@@ -475,156 +604,267 @@ class Weather:
                         dmn_str = "گرمترین"
 
                     generated_sentence = "{} {} دمای {}، بین {}، روز {} است".format(
-                        dmn_str, mabs_str, location[0], " و ".join(tr_date(date_list, tokens, labels)), tr_single_date(result_g, True))
+                        dmn_str,
+                        mabs_str,
+                        location[0],
+                        " و ".join(tr_date(date_list, tokens, labels)),
+                        tr_single_date(result_g, True),
+                    )
 
-            elif (t == 0 or t == 1) and d == 1 and l >= 2:
+            elif (t == 0 or t == 1) and d == 1 and nl >= 2:
                 for lc in location:
                     r, _ = func(
-                        question, tokens, labels, func_dict[mean_abs_list[0]], time_iso, date_list, [lc], True)
+                        question,
+                        tokens,
+                        labels,
+                        func_dict[mean_abs_list[0]],
+                        time_iso,
+                        date_list,
+                        [lc],
+                        True,
+                    )
                     res.append(r)
                 if ta or diff_max_min[0] == "diff":
                     if diff_max_min[0] == "diff":
-                        result = np.diff(
-                            np.array(res, dtype="d"))
+                        result = np.diff(np.array(res, dtype="d"))
                         result = ["%4.2f" % r for r in result]
-                        generated_sentence = "اختلاف {} دمای {}، {}، {} درجه سانتی‌گراد است".format(
-                            mabs_str, " و ".join(location), tr_single_date(date_list[0]), " و ".join(result))
+                        generated_sentence = (
+                            "اختلاف {} دمای {}، {}، {} درجه سانتی‌گراد است".format(
+                                mabs_str,
+                                " و ".join(location),
+                                tr_single_date(date_list[0]),
+                                " و ".join(result),
+                            )
+                        )
                     else:
-                        result = res[func_dict[diff_max_min[0]](
-                            np.array(res, dtype="d"))]
+                        result = res[
+                            func_dict[diff_max_min[0]](np.array(res, dtype="d"))
+                        ]
                         if diff_max_min[0] == "amin":
                             dmn_str = "سردترین"
                         else:
                             dmn_str = "گرمترین"
 
-                        generated_sentence = "{} {} دمای {}، {}، {} درجه سانتی‌گراد است".format(dmn_str,
-                                                                                                mabs_str, " و ".join(location), tr_single_date(date_list[0]), " و ".join(result))
+                        generated_sentence = (
+                            "{} {} دمای {}، {}، {} درجه سانتی‌گراد است".format(
+                                dmn_str,
+                                mabs_str,
+                                " و ".join(location),
+                                tr_single_date(date_list[0]),
+                                " و ".join(result),
+                            )
+                        )
 
                 else:
-                    result = location[func_dict[diff_max_min[0]](
-                        np.array(res, dtype="d"))]
+                    result = location[
+                        func_dict[diff_max_min[0]](np.array(res, dtype="d"))
+                    ]
                     if diff_max_min[0] == "amin":
                         dmn_str = "سردترین"
                     else:
                         dmn_str = "گرمترین"
                     generated_sentence = "{} {} دمای {}، بین {}، {} است".format(
-                        dmn_str, mabs_str, tr_single_date(date_list[0]), " و ".join(location), result)
+                        dmn_str,
+                        mabs_str,
+                        tr_single_date(date_list[0]),
+                        " و ".join(location),
+                        result,
+                    )
 
-            elif t >= 2 and l == 1 and d == 1:
+            elif t >= 2 and nl == 1 and d == 1:
                 for tim in time_iso:
-                    r, _ = func(question, func_dict[mean_abs_list[0]], [
-                                tim], date_list, location, True)
+                    r, _ = func(
+                        question,
+                        func_dict[mean_abs_list[0]],
+                        [tim],
+                        date_list,
+                        location,
+                        True,
+                    )
                     res.append(r)
                 if ta or diff_max_min[0] == "diff":
                     if diff_max_min[0] == "diff":
-                        result = np.diff(
-                            np.array(res, dtype="d"))
+                        result = np.diff(np.array(res, dtype="d"))
                         result = ["%4.2f" % r for r in result]
-                        generated_sentence = "اختلاف {} دمای {}، {} {}، {} درجه سانتی‌گراد است".format(
-                            mabs_str, location[0], tr_single_date(date_list[0]), " و ".join(tr_time(time_iso, tokens, labels)), " و ".join(result))
+                        generated_sentence = (
+                            "اختلاف {} دمای {}، {} {}، {} درجه سانتی‌گراد است".format(
+                                mabs_str,
+                                location[0],
+                                tr_single_date(date_list[0]),
+                                " و ".join(tr_time(time_iso, tokens, labels)),
+                                " و ".join(result),
+                            )
+                        )
 
                     else:
-                        result = res[func_dict[diff_max_min[0]](
-                            np.array(res, dtype="d"))]
+                        result = res[
+                            func_dict[diff_max_min[0]](np.array(res, dtype="d"))
+                        ]
                         if diff_max_min[0] == "amin":
                             dmn_str = "سردترین"
                         else:
                             dmn_str = "گرمترین"
 
-                        generated_sentence = "{} {} دمای {}، {} {}، {} درجه سانتی‌گراد است".format(dmn_str,
-                                                                                                   mabs_str, location[0], tr_single_date(date_list[0]), " و ".join(tr_time(time_iso, tokens, labels)), result)
+                        generated_sentence = (
+                            "{} {} دمای {}، {} {}، {} درجه سانتی‌گراد است".format(
+                                dmn_str,
+                                mabs_str,
+                                location[0],
+                                tr_single_date(date_list[0]),
+                                " و ".join(tr_time(time_iso, tokens, labels)),
+                                result,
+                            )
+                        )
 
                 else:
-                    result_g = time_iso[func_dict[diff_max_min[0]](
-                        np.array(res, dtype="d"))]
+                    result_g = time_iso[
+                        func_dict[diff_max_min[0]](np.array(res, dtype="d"))
+                    ]
                     result = result_g.strftime("%H:%M")
                     if diff_max_min[0] == "amin":
                         dmn_str = "سردترین"
                     else:
                         dmn_str = "گرمترین"
 
-                    generated_sentence = "{} {} دمای {}، {}، بین {}، در زمان {} است".format(dmn_str, mabs_str, location[0], tr_single_date(
-                        date_list[0]), " و ".join(tr_time(time_iso, tokens, labels)), tr_single_time(result_g))
+                    generated_sentence = (
+                        "{} {} دمای {}، {}، بین {}، در زمان {} است".format(
+                            dmn_str,
+                            mabs_str,
+                            location[0],
+                            tr_single_date(date_list[0]),
+                            " و ".join(tr_time(time_iso, tokens, labels)),
+                            tr_single_time(result_g),
+                        )
+                    )
 
             ###
-            elif (t == d) and l == 1:
+            elif (t == d) and nl == 1:
                 res_str = []
                 for dat, tim in zip(date_list, time_iso):
-                    r, _ = func(question, func_dict[mean_abs_list[0]], [
-                                tim], [dat], location, True)
+                    r, _ = func(
+                        question,
+                        func_dict[mean_abs_list[0]],
+                        [tim],
+                        [dat],
+                        location,
+                        True,
+                    )
                     res.append(r)
-                    res_str.append("{} {}".format(
-                        tr_single_date(dat), tr_single_time(tim)))
+                    res_str.append(
+                        "{} {}".format(tr_single_date(dat), tr_single_time(tim))
+                    )
                 if ta or diff_max_min[0] == "diff":
                     if diff_max_min[0] == "diff":
-                        result = np.diff(
-                            np.array(res, dtype="d"))
+                        result = np.diff(np.array(res, dtype="d"))
                         result = ["%4.2f" % r for r in result]
                         generated_sentence = "اختلاف {} دمای هوای {} بین {}، {} درجه سانتی‌گراد است".format(
-                            mabs_str, location[0], " و ".join(res_str), " و ".join(result))
+                            mabs_str,
+                            location[0],
+                            " و ".join(res_str),
+                            " و ".join(result),
+                        )
 
                     else:
-                        result = res[func_dict[diff_max_min[0]](
-                            np.array(res, dtype="d"))]
+                        result = res[
+                            func_dict[diff_max_min[0]](np.array(res, dtype="d"))
+                        ]
                         if diff_max_min[0] == "amin":
                             dmn_str = "سردترین"
                         else:
                             dmn_str = "گرمترین"
-                        generated_sentence = "{} {} دمای هوای {} بین {}، {} درجه سانتی‌گراد است".format(dmn_str,
-                                                                                                        mabs_str, location[0], " و ".join(res_str), " و ".join(result))
+                        generated_sentence = (
+                            "{} {} دمای هوای {} بین {}، {} درجه سانتی‌گراد است".format(
+                                dmn_str,
+                                mabs_str,
+                                location[0],
+                                " و ".join(res_str),
+                                " و ".join(result),
+                            )
+                        )
 
                 else:
-                    result_g = date_list[func_dict[diff_max_min[0]](
-                        np.array(res, dtype="d"))]
+                    result_g = date_list[
+                        func_dict[diff_max_min[0]](np.array(res, dtype="d"))
+                    ]
                     result = gregorian_to_jalali(
-                        result_g.year, result_g.month, result_g.day)
+                        result_g.year, result_g.month, result_g.day
+                    )
                     result = format_jalali_date(result)
                     if diff_max_min[0] == "amin":
                         dmn_str = "سردترین"
                     else:
                         dmn_str = "گرمترین"
                     generated_sentence = "{} {} دمای هوا در {} بین {}، {} است".format(
-                        dmn_str, mabs_str, location[0], " و ".join(res_str), tr_single_date(result_g))
-            elif (t == 0 or t == 1) and d == l:
+                        dmn_str,
+                        mabs_str,
+                        location[0],
+                        " و ".join(res_str),
+                        tr_single_date(result_g),
+                    )
+            elif (t == 0 or t == 1) and d == nl:
                 res_str = []
                 for lc, dat in zip(location, date_list):
-                    r, _ = func(question, tokens, labels, func_dict[mean_abs_list[0]], time_iso, [
-                                dat], [lc], True)
+                    r, _ = func(
+                        question,
+                        tokens,
+                        labels,
+                        func_dict[mean_abs_list[0]],
+                        time_iso,
+                        [dat],
+                        [lc],
+                        True,
+                    )
                     res_str.append("{} {}".format(tr_single_date(dat), lc))
                     res.append(r)
                 if ta or diff_max_min[0] == "diff":
                     if diff_max_min[0] == "diff":
-                        result = np.diff(
-                            np.array(res, dtype="d"))
+                        result = np.diff(np.array(res, dtype="d"))
                         result = ["%4.2f" % r for r in result]
-                        generated_sentence = "اختلاف {} دما بین {}، {} درجه سانتی‌گراد است".format(
-                            mabs_str, " و ".join(res_str), " و ".join(result))
+                        generated_sentence = (
+                            "اختلاف {} دما بین {}، {} درجه سانتی‌گراد است".format(
+                                mabs_str, " و ".join(res_str), " و ".join(result)
+                            )
+                        )
                     else:
-                        result = res[func_dict[diff_max_min[0]](
-                            np.array(res, dtype="d"))]
+                        result = res[
+                            func_dict[diff_max_min[0]](np.array(res, dtype="d"))
+                        ]
                         if diff_max_min[0] == "amin":
                             dmn_str = "سردترین"
                         else:
                             dmn_str = "گرمترین"
-                        generated_sentence = "{} {} دمای بین {}، {} درجه سانتی‌گراد است".format(
-                            dmn_str, mabs_str, " و ".join(res_str), result)
+                        generated_sentence = (
+                            "{} {} دمای بین {}، {} درجه سانتی‌گراد است".format(
+                                dmn_str, mabs_str, " و ".join(res_str), result
+                            )
+                        )
                 else:
-                    result = location[func_dict[diff_max_min[0]](
-                        np.array(res, dtype="d"))]
+                    result = location[
+                        func_dict[diff_max_min[0]](np.array(res, dtype="d"))
+                    ]
                     if diff_max_min[0] == "amin":
                         dmn_str = "سردترین"
                     else:
                         dmn_str = "گرمترین"
 
                     generated_sentence = "{} {}  دما بین {}، {} دارا میباشد".format(
-                        dmn_str, mabs_str, " و ".join(res_str), result)
+                        dmn_str, mabs_str, " و ".join(res_str), result
+                    )
         else:
             lg = len(mean_abs_list)
             mabs_str = []
-            if l == 1 and d == 1 and (t == 0 or t == 1):
+            if nl == 1 and d == 1 and (t == 0 or t == 1):
                 for mabs in mean_abs_list:
                     r, _ = wfunc_dict[mabs](
-                        question, tokens, labels, func_dict[mabs], time_iso, date_list, location, True)
+                        question,
+                        tokens,
+                        labels,
+                        func_dict[mabs],
+                        time_iso,
+                        date_list,
+                        location,
+                        True,
+                    )
                     if mabs == "amin_abs":
                         mabs_str.append("حداقل")
                     elif mabs == "amax_abs":
@@ -634,26 +874,47 @@ class Weather:
                     res.append(r)
                 if ta or diff_max_min[0] == "diff":
                     if diff_max_min[0] == "diff":
-                        result = np.diff(
-                            np.array(res, dtype="d"))
+                        result = np.diff(np.array(res, dtype="d"))
                         result = ["%4.2f" % r for r in result]
-                        generated_sentence = "اختلاف {} دمای {} {}، {} درجه سانتی‌گراد است".format(
-                            " و ".join(mabs_str), location[0], tr_single_date(date_list[0]), " و ".join(result))
+                        generated_sentence = (
+                            "اختلاف {} دمای {} {}، {} درجه سانتی‌گراد است".format(
+                                " و ".join(mabs_str),
+                                location[0],
+                                tr_single_date(date_list[0]),
+                                " و ".join(result),
+                            )
+                        )
                     else:
-                        result = res[func_dict[diff_max_min[0]](
-                            np.array(res, dtype="d"))]
+                        result = res[
+                            func_dict[diff_max_min[0]](np.array(res, dtype="d"))
+                        ]
                         if diff_max_min[0] == "amin":
                             dmn_str = "سردترین"
                         else:
                             dmn_str = "گرمترین"
-                        generated_sentence = "{} {} دمای {} {}، {} درجه سانتی‌گراد است".format(dmn_str,
-                                                                                               " و ".join(mabs_str), location[0], tr_single_date(date_list[0]), result)
+                        generated_sentence = (
+                            "{} {} دمای {} {}، {} درجه سانتی‌گراد است".format(
+                                dmn_str,
+                                " و ".join(mabs_str),
+                                location[0],
+                                tr_single_date(date_list[0]),
+                                result,
+                            )
+                        )
 
-            elif lg == d and l == 1 and (t == 0 or t == 1):
+            elif lg == d and nl == 1 and (t == 0 or t == 1):
                 mabs_dat_str = []
                 for mabs, dat in zip(mean_abs_list, date_list):
-                    r, _ = wfunc_dict[mabs](question, tokens, labels, func_dict[mabs], time_iso, [
-                                            dat], location, True)
+                    r, _ = wfunc_dict[mabs](
+                        question,
+                        tokens,
+                        labels,
+                        func_dict[mabs],
+                        time_iso,
+                        [dat],
+                        location,
+                        True,
+                    )
                     d_str = tr_single_date(dat)
                     if mabs == "amin_abs":
                         mabs_dat_str.append("حداقل دمای {}".format(d_str))
@@ -664,38 +925,60 @@ class Weather:
                     res.append(r)
                 if ta or diff_max_min[0] == "diff":
                     if diff_max_min[0] == "diff":
-                        result = np.diff(
-                            np.array(res, dtype="d"))
+                        result = np.diff(np.array(res, dtype="d"))
                         result = ["%4.2f" % r for r in result]
-                        generated_sentence = "اختلاف دمای {} {}، {} درجه سانتی‌گراد است".format(
-                            " و ".join(mabs_dat_str), location[0], " و ".join(result))
+                        generated_sentence = (
+                            "اختلاف دمای {} {}، {} درجه سانتی‌گراد است".format(
+                                " و ".join(mabs_dat_str),
+                                location[0],
+                                " و ".join(result),
+                            )
+                        )
                     else:
-                        result = res[func_dict[diff_max_min[0]](
-                            np.array(res, dtype="d"))]
+                        result = res[
+                            func_dict[diff_max_min[0]](np.array(res, dtype="d"))
+                        ]
                         if diff_max_min[0] == "amin":
                             dmn_str = "حداقل"
                         else:
                             dmn_str = "حداکثر"
-                        generated_sentence = "اختلاف دمای {} {}، {} درجه سانتی‌گراد است".format(
-                            " و ".join(mabs_dat_str), location[0], result)
+                        generated_sentence = (
+                            "اختلاف دمای {} {}، {} درجه سانتی‌گراد است".format(
+                                " و ".join(mabs_dat_str), location[0], result
+                            )
+                        )
 
                 else:
-                    result_g = date_list[func_dict[diff_max_min[0]](
-                        np.array(res, dtype="d"))]
+                    result_g = date_list[
+                        func_dict[diff_max_min[0]](np.array(res, dtype="d"))
+                    ]
                     result = gregorian_to_jalali(
-                        result_g.year, result_g.month, result_g.day)
+                        result_g.year, result_g.month, result_g.day
+                    )
                     result = format_jalali_date(result)
                     if diff_max_min[0] == "amin":
                         dmn_str = "سردترین"
                     else:
                         dmn_str = "گرمترین"
                     generated_sentence = "{} دما بین {}، {} روز {} است".format(
-                        dmn_str, " و ".join(mabs_dat_str), location[0], tr_single_date(result_g))
-            elif lg == l and d == 1 and (t == 0 or t == 1):
+                        dmn_str,
+                        " و ".join(mabs_dat_str),
+                        location[0],
+                        tr_single_date(result_g),
+                    )
+            elif lg == nl and d == 1 and (t == 0 or t == 1):
                 mabs_lc_str = []
                 for mabs, lc in zip(mean_abs_list, location):
                     r, _ = wfunc_dict[mabs](
-                        question, tokens, labels, func_dict[mabs], time_iso, date_list, [lc], True)
+                        question,
+                        tokens,
+                        labels,
+                        func_dict[mabs],
+                        time_iso,
+                        date_list,
+                        [lc],
+                        True,
+                    )
                     res.append(r)
                     if mabs == "amin_abs":
                         mabs_lc_str.append("حداقل دمای {}".format(lc))
@@ -705,34 +988,58 @@ class Weather:
                         mabs_lc_str.append("میانگین دمای {}".format(lc))
                 if ta or diff_max_min[0] == "diff":
                     if diff_max_min[0] == "diff":
-                        result = np.diff(
-                            np.array(res, dtype="d"))
+                        result = np.diff(np.array(res, dtype="d"))
                         result = ["%4.2f" % r for r in result]
-                        generated_sentence = "اختلاف دمای {}، {}، {} درجه سانتی‌گراد است".format(
-                            " و ".join(mabs_lc_str), tr_single_date(date_list[0]), " و ".join(result))
+                        generated_sentence = (
+                            "اختلاف دمای {}، {}، {} درجه سانتی‌گراد است".format(
+                                " و ".join(mabs_lc_str),
+                                tr_single_date(date_list[0]),
+                                " و ".join(result),
+                            )
+                        )
                     else:
-                        result = res[func_dict[diff_max_min[0]](
-                            np.array(res, dtype="d"))]
+                        result = res[
+                            func_dict[diff_max_min[0]](np.array(res, dtype="d"))
+                        ]
                         if diff_max_min == "amin":
                             dmn_str = "حداقل"
                         else:
                             dmn_str = "حداکثر"
-                        generated_sentence = "{} دمای {}، {}، {} درجه سانتی‌گراد است".format(dmn_str,
-                                                                                             " و ".join(mabs_lc_str), tr_single_date(date_list[0]), " و ".join(result))
+                        generated_sentence = (
+                            "{} دمای {}، {}، {} درجه سانتی‌گراد است".format(
+                                dmn_str,
+                                " و ".join(mabs_lc_str),
+                                tr_single_date(date_list[0]),
+                                " و ".join(result),
+                            )
+                        )
                 else:
-                    result = location[func_dict[diff_max_min[0]](
-                        np.array(res, dtype="d"))]
+                    result = location[
+                        func_dict[diff_max_min[0]](np.array(res, dtype="d"))
+                    ]
                     if diff_max_min == "amin":
                         dmn_str = "سردترین"
                     else:
                         dmn_str = "گرمترین"
                     generated_sentence = "{} دما {} بین {} را  {} دارد".format(
-                        dmn_str, tr_single_date(date_list[0]), " و ".join(mabs_lc_str), result)
-            elif lg == t and d == 1 and l == 1:
+                        dmn_str,
+                        tr_single_date(date_list[0]),
+                        " و ".join(mabs_lc_str),
+                        result,
+                    )
+            elif lg == t and d == 1 and nl == 1:
                 mabs_str = []
                 for mabs, tim in zip(mean_abs_list, time_iso):
-                    r, _ = wfunc_dict[mabs](question, tokens, labels, func_dict[mabs], [
-                        tim], date_list, location, True)
+                    r, _ = wfunc_dict[mabs](
+                        question,
+                        tokens,
+                        labels,
+                        func_dict[mabs],
+                        [tim],
+                        date_list,
+                        location,
+                        True,
+                    )
                     if mabs == "amin_abs":
                         mabs_str.append("حداقل دمای")
                     elif mabs == "amax_bas":
@@ -742,76 +1049,118 @@ class Weather:
                     res.append(r)
                 if ta or diff_max_min[0] == "diff":
                     if diff_max_min[0] == "diff":
-                        result = np.diff(
-                            np.array(res, dtype="d"))
+                        result = np.diff(np.array(res, dtype="d"))
                         result = ["%4.2f" % r for r in result]
                         generated_sentence = "اختلاف دمای {}، {}، بین {} {}، {} درجه سانتی‌گراد میباشد".format(
-                            " و ".join(mabs_str), location[0], " و ".join(tr_time(time_iso, tokens, labels)), tr_single_date(date_list[0]), " و ".join(result))
+                            " و ".join(mabs_str),
+                            location[0],
+                            " و ".join(tr_time(time_iso, tokens, labels)),
+                            tr_single_date(date_list[0]),
+                            " و ".join(result),
+                        )
                     else:
-                        result = res[func_dict[diff_max_min[0]](
-                            np.array(res, dtype="d"))]
+                        result = res[
+                            func_dict[diff_max_min[0]](np.array(res, dtype="d"))
+                        ]
                         if diff_max_min == "amin":
                             dmn_str = "حداقل"
                         else:
                             dmn_str = "حداکثر"
-                        generated_sentence = "{} دمای {}، {}، بین {} {}، {} درجه سانتی‌گراد میباشد".format(dmn_str,
-                                                                                                           " و ".join(mabs_str), location[0], " و ".join(tr_time(time_iso, tokens, labels)), tr_single_date(date_list[0]), result)
+                        generated_sentence = "{} دمای {}، {}، بین {} {}، {} درجه سانتی‌گراد میباشد".format(
+                            dmn_str,
+                            " و ".join(mabs_str),
+                            location[0],
+                            " و ".join(tr_time(time_iso, tokens, labels)),
+                            tr_single_date(date_list[0]),
+                            result,
+                        )
 
                 else:
-                    result_g = time_iso[func_dict[diff_max_min[0]](
-                        np.array(res, dtype="d"))]
+                    result_g = time_iso[
+                        func_dict[diff_max_min[0]](np.array(res, dtype="d"))
+                    ]
                     result = result_g.strftime("%H:%M")
                     if diff_max_min == "amin":
                         dmn_str = "سردترین"
                     else:
                         dmn_str = "گرمترین"
-                    generated_sentence = "دمای {} {} {} {}، در زمان {} میباشد {}".format(dmn_str, " و ".join(
-                        mabs_str), location[0], tr_single_date(date_list[0]), " و ".join(tr_time(time_iso, tokens, labels)), tr_single_time(result_g))
-            elif (lg == l) and (l == d) and (t == 0 or t == 1):
+                    generated_sentence = (
+                        "دمای {} {} {} {}، در زمان {} میباشد {}".format(
+                            dmn_str,
+                            " و ".join(mabs_str),
+                            location[0],
+                            tr_single_date(date_list[0]),
+                            " و ".join(tr_time(time_iso, tokens, labels)),
+                            tr_single_time(result_g),
+                        )
+                    )
+            elif (lg == nl) and (nl == d) and (t == 0 or t == 1):
                 unk_list = []
-                for i in range(l):
+                for i in range(nl):
                     r, _ = wfunc_dict[mean_abs_list[i]](
-                        question, tokens, labels, func_dict[mean_abs_list[i]], time_iso, date_list[i], location[i], True)
+                        question,
+                        tokens,
+                        labels,
+                        func_dict[mean_abs_list[i]],
+                        time_iso,
+                        date_list[i],
+                        location[i],
+                        True,
+                    )
                     res.append(r)
                     if mean_abs_list[i] == "amax_abs":
-                        unk_list.append("حداکثر دمای {} {}".format(
-                            tr_single_date(date_list[i])), location[i])
+                        unk_list.append(
+                            "حداکثر دمای {}".format(tr_single_date(date_list[i])),
+                            location[i],
+                        )
                     elif mean_abs_list[i] == "amin_abs":
-                        unk_list.append("حداقل دمای {} {}".format(
-                            tr_single_date(date_list[i])), location[i])
+                        unk_list.append(
+                            "حداقل دمای {} ".format(tr_single_date(date_list[i])),
+                            location[i],
+                        )
                     else:
-                        unk_list.append("میانگین دمای {} {}".format(
-                            tr_single_date(date_list[i])), location[i])
+                        unk_list.append(
+                            "میانگین دمای {} ".format(tr_single_date(date_list[i])),
+                            location[i],
+                        )
 
                 if ta or diff_max_min[0] == "diff":
                     if diff_max_min[0] == "diff":
-                        result = np.diff(
-                            np.array(res, dtype="d"))
+                        result = np.diff(np.array(res, dtype="d"))
                         result = ["%4.2f" % r for r in result]
-                        generated_sentence = 'اختلاف دمای {}، {} درجه سانتی‌گراد میباشد'.format(
-                            " و ".join(unk_list), " و ".join(result))
+                        generated_sentence = (
+                            "اختلاف دمای {}، {} درجه سانتی‌گراد میباشد".format(
+                                " و ".join(unk_list), " و ".join(result)
+                            )
+                        )
                     else:
-                        result = res[func_dict[diff_max_min[0]](
-                            np.array(res, dtype="d"))]
+                        result = res[
+                            func_dict[diff_max_min[0]](np.array(res, dtype="d"))
+                        ]
                         if diff_max_min[0] == "amin":
                             dmn_str = "سردترین"
                         else:
                             dmn_str = "گرمترین"
-                        generated_sentence = '{} دمای {}، {} درجه سانتی‌گراد میباشد'.format(dmn_str,
-                                                                                            " و ".join(unk_list), result)
+                        generated_sentence = (
+                            "{} دمای {}، {} درجه سانتی‌گراد میباشد".format(
+                                dmn_str, " و ".join(unk_list), result
+                            )
+                        )
 
                 else:
-                    result = location[func_dict[diff_max_min[0]](
-                        np.array(res, dtype="d"))]
+                    result = location[
+                        func_dict[diff_max_min[0]](np.array(res, dtype="d"))
+                    ]
                     if diff_max_min[0] == "amin":
                         dmn_str = "سردترین"
                     else:
                         dmn_str = "گرمترین"
                     generated_sentence = "{} شهر بین {}، {} میباشد".format(
-                        dmn_str, " و ".join(unk_list), result)
-            elif (lg == l) and (l == t) and (d == 1):
+                        dmn_str, " و ".join(unk_list), result
+                    )
+            elif (lg == nl) and (nl == t) and (d == 1):
                 unk_list = []
-                for i in range(l):
+                for i in range(nl):
                     if mean_abs_list[i] == "amax_abs":
                         unk_list.append("حداکثر دمای {}".format(location[i]))
                     elif mean_abs_list[i] == "amin_abs":
@@ -820,44 +1169,72 @@ class Weather:
                         unk_list.append("میانگین دمای {}".format(location[i]))
 
                     r, _ = wfunc_dict[mean_abs_list[i]](
-                        question, tokens, labels, func_dict[mean_abs_list[i]], time_iso[i], date_list, location[i], True)
+                        question,
+                        tokens,
+                        labels,
+                        func_dict[mean_abs_list[i]],
+                        time_iso[i],
+                        date_list,
+                        location[i],
+                        True,
+                    )
                     res.append(r)
                 if ta or diff_max_min[0] == "diff":
                     if diff_max_min[0] == "diff":
-                        result = np.diff(
-                            np.array(res, dtype="d"))
+                        result = np.diff(np.array(res, dtype="d"))
                         result = ["%4.2f" % r for r in result]
-                        generated_sentence = "اختلاف دمای {}، {}، {}، {} درجه سانتی‌گراد است".format(" و ".join(
-                            unk_list), " و ".join(tr_time(time_iso, tokens, labels)), tr_single_date(date_list[0]), " و ".join(result))
+                        generated_sentence = (
+                            "اختلاف دمای {}، {}، {}، {} درجه سانتی‌گراد است".format(
+                                " و ".join(unk_list),
+                                " و ".join(tr_time(time_iso, tokens, labels)),
+                                tr_single_date(date_list[0]),
+                                " و ".join(result),
+                            )
+                        )
                     else:
-                        result = res[func_dict[diff_max_min[0]](
-                            np.array(res, dtype="d"))]
+                        result = res[
+                            func_dict[diff_max_min[0]](np.array(res, dtype="d"))
+                        ]
                         if diff_max_min[0] == "amin":
                             dmn_str = "حداقل"
                         else:
                             dmn_str = "حداکثر"
 
-                        generated_sentence = "{} دمای {}، {}، {}، {} درجه سانتی‌گراد است".format(dmn_str, " و ".join(
-                            unk_list), " و ".join(tr_time(time_iso, tokens, labels)), tr_single_date(date_list[0]), result)
+                        generated_sentence = (
+                            "{} دمای {}، {}، {}، {} درجه سانتی‌گراد است".format(
+                                dmn_str,
+                                " و ".join(unk_list),
+                                " و ".join(tr_time(time_iso, tokens, labels)),
+                                tr_single_date(date_list[0]),
+                                result,
+                            )
+                        )
                 else:
-                    result = location[func_dict[diff_max_min[0]](
-                        np.array(res, dtype="d"))]
+                    result = location[
+                        func_dict[diff_max_min[0]](np.array(res, dtype="d"))
+                    ]
                     if diff_max_min[0] == "amin":
                         dmn_str = "سردترین"
                     else:
                         dmn_str = "گرمترین"
 
-                    generated_sentence = "{} بین {}، {}، {}، {} میباشد".format(dmn_str, " و ".join(
-                        unk_list), " و ".join(tr_time(time_iso, tokens, labels)), tr_single_date(date_list[0]), result)
+                    generated_sentence = "{} بین {}، {}، {}، {} میباشد".format(
+                        dmn_str,
+                        " و ".join(unk_list),
+                        " و ".join(tr_time(time_iso, tokens, labels)),
+                        tr_single_date(date_list[0]),
+                        result,
+                    )
 
         return result, generated_sentence
 
-    def mean_abs_q(self, question, tokens, labels, mean_abs_list, time_iso, date_list, location):
-        func_dict = {"amin_abs": np.argmin,
-                     "amax_abs": np.argmax, "mean": np.mean}
+    def mean_abs_q(
+        self, question, tokens, labels, mean_abs_list, time_iso, date_list, location
+    ):
+        func_dict = {"amin_abs": np.argmin, "amax_abs": np.argmax, "mean": np.mean}
         t = len(time_iso)
         d = len(date_list)
-        l = len(location)
+        nl = len(location)
         if len(mean_abs_list) == 2:
             if mean_abs_list[1] == "amin_abs" or mean_abs_list[1] == "amax_abs":
                 func = self.min_max_handler
@@ -874,84 +1251,159 @@ class Weather:
             for ita in temp_asked:
                 if ita in question:
                     ta = True
-            if (t == 0 or t == 1) and d >= 2 and l == 1:
+            if (t == 0 or t == 1) and d >= 2 and nl == 1:
                 for dat in date_list:
-                    r, _ = func(question, tokens, labels, func_dict[mean_abs_list[1]], time_iso, [
-                                dat], location, True)
+                    r, _ = func(
+                        question,
+                        tokens,
+                        labels,
+                        func_dict[mean_abs_list[1]],
+                        time_iso,
+                        [dat],
+                        location,
+                        True,
+                    )
                     res.append(r)
                 if ta or mean_abs_list[0] == "mean":
                     if mean_abs_list[0] == "mean":
                         result = "%4.2f" % func_dict[mean_abs_list[0]](
-                            np.array(res, dtype="d"))
-                        generated_sentence = "میانگین {} دماهای {} {}، {} درجه سانتی‌گراد است".format(
-                            g_word2, location[0], " و ".join(tr_date(date_list, tokens, labels)), result)
+                            np.array(res, dtype="d")
+                        )
+                        generated_sentence = (
+                            "میانگین {} دماهای {} {}، {} درجه سانتی‌گراد است".format(
+                                g_word2,
+                                location[0],
+                                " و ".join(tr_date(date_list, tokens, labels)),
+                                result,
+                            )
+                        )
                     else:
-                        result = res[func_dict[mean_abs_list[0]](
-                            np.array(res, dtype="d"))]
+                        result = res[
+                            func_dict[mean_abs_list[0]](np.array(res, dtype="d"))
+                        ]
                         if mean_abs_list[0] == "amax_abs":
                             g_word1 = "حداکثر"
                         else:
                             g_word1 = "حداقل"
-                        generated_sentence = "{} {} دماهای {} {}، {} درجه سانتی‌گراد است".format(g_word1,
-                                                                                                 g_word2, location[0], " و ".join(tr_date(date_list, tokens, labels)), result)
+                        generated_sentence = (
+                            "{} {} دماهای {} {}، {} درجه سانتی‌گراد است".format(
+                                g_word1,
+                                g_word2,
+                                location[0],
+                                " و ".join(tr_date(date_list, tokens, labels)),
+                                result,
+                            )
+                        )
                 else:
                     if mean_abs_list[0] == "amax_abs":
                         g_word1 = "گرمترین"
                     else:
                         g_word1 = "سردترین"
 
-                    result_g = date_list[func_dict[mean_abs_list[0]](
-                        np.array(res, dtype="d"))]
+                    result_g = date_list[
+                        func_dict[mean_abs_list[0]](np.array(res, dtype="d"))
+                    ]
                     result = gregorian_to_jalali(
-                        result_g.year, result_g.month, result_g.day)
+                        result_g.year, result_g.month, result_g.day
+                    )
                     result = format_jalali_date(result)
-                    generated_sentence = "{} {} {} {}، {} در روز {} است".format(g_word1,
-                                                                                g_word2, location[0], " و ".join(tr_date(date_list, tokens, labels)), tr_single_date(result_g))
+                    generated_sentence = "{} {} {} {}، در روز {} است".format(
+                        g_word1,
+                        g_word2,
+                        location[0],
+                        " و ".join(tr_date(date_list, tokens, labels)),
+                        tr_single_date(result_g),
+                    )
 
-            elif (t == 0 or t == 1) and d == 1 and l >= 2:
+            elif (t == 0 or t == 1) and d == 1 and nl >= 2:
                 for lc in location:
                     r, _ = func(
-                        question, tokens, labels, func_dict[mean_abs_list[1]], time_iso, date_list, [lc], True)
+                        question,
+                        tokens,
+                        labels,
+                        func_dict[mean_abs_list[1]],
+                        time_iso,
+                        date_list,
+                        [lc],
+                        True,
+                    )
                     res.append(r)
                 if ta or mean_abs_list[0] == "mean":
                     if mean_abs_list[0] == "mean":
                         result = "%4.2f" % func_dict[mean_abs_list[0]](
-                            np.array(res, dtype="d"))
-                        generated_sentence = "میانگین {} دماهای {} {}، {} درجه سانتی‌گراد است".format(
-                            g_word2, tr_single_date(date_list[0]), " و ".join(location), result)
+                            np.array(res, dtype="d")
+                        )
+                        generated_sentence = (
+                            "میانگین {} دماهای {} {}، {} درجه سانتی‌گراد است".format(
+                                g_word2,
+                                tr_single_date(date_list[0]),
+                                " و ".join(location),
+                                result,
+                            )
+                        )
                     else:
-                        result = res[func_dict[mean_abs_list[0]](
-                            np.array(res, dtype="d"))]
+                        result = res[
+                            func_dict[mean_abs_list[0]](np.array(res, dtype="d"))
+                        ]
                         if mean_abs_list[0] == "amax_abs":
                             g_word1 = "حداکثر"
                         else:
                             g_word1 = "حداقل"
-                        generated_sentence = "{} {} دماهای {} {}، {} درجه سانتی‌گراد است".format(g_word1,
-                                                                                                 g_word2, tr_single_date(date_list[0]), " و ".join(location), result)
+                        generated_sentence = (
+                            "{} {} دماهای {} {}، {} درجه سانتی‌گراد است".format(
+                                g_word1,
+                                g_word2,
+                                tr_single_date(date_list[0]),
+                                " و ".join(location),
+                                result,
+                            )
+                        )
 
                 else:
-                    result = location[func_dict[mean_abs_list[0]](
-                        np.array(res, dtype="d"))]
+                    result = location[
+                        func_dict[mean_abs_list[0]](np.array(res, dtype="d"))
+                    ]
                     if mean_abs_list[0] == "amax_abs":
                         g_word1 = "گرمترین"
                     else:
                         g_word1 = "سردترین"
 
-                    generated_sentence = "{} {} دما {} بین {} شهر {} است".format(g_word1,
-                                                                                 g_word2, tr_single_date(date_list[0]), " و ".join(location), result)
+                    generated_sentence = "{} {} دما {} بین {} شهر {} است".format(
+                        g_word1,
+                        g_word2,
+                        tr_single_date(date_list[0]),
+                        " و ".join(location),
+                        result,
+                    )
 
-            elif t >= 2 and l == 1 and d == 1:
+            elif t >= 2 and nl == 1 and d == 1:
                 for tim in time_iso:
-                    r, _ = func(question, tokens, labels, func_dict[mean_abs_list[1]], [
-                        tim], date_list, location, True)
+                    r, _ = func(
+                        question,
+                        tokens,
+                        labels,
+                        func_dict[mean_abs_list[1]],
+                        [tim],
+                        date_list,
+                        location,
+                        True,
+                    )
                     res.append(r)
                 if ta or mean_abs_list[0] == "mean":
                     if mean_abs_list[0] == "mean":
                         result = "%4.2f" % func_dict[mean_abs_list[0]](
-                            np.array(res, dtype="d"))
+                            np.array(res, dtype="d")
+                        )
 
-                        generated_sentence = "میانگین {} دمای {} {} {}، {} درجه سانتی‌گراد است".format(
-                            g_word2, location[0], " و ".join(tr_time(time_iso, tokens, labels)), tr_single_date(date_list[0]), result)
+                        generated_sentence = (
+                            "میانگین {} دمای {} {} {}، {} درجه سانتی‌گراد است".format(
+                                g_word2,
+                                location[0],
+                                " و ".join(tr_time(time_iso, tokens, labels)),
+                                tr_single_date(date_list[0]),
+                                result,
+                            )
+                        )
 
                     else:
                         if mean_abs_list[0] == "amax_abs":
@@ -959,129 +1411,250 @@ class Weather:
                         else:
                             g_word1 = "حداقل"
 
-                        result = res[func_dict[mean_abs_list[0]](
-                            np.array(res, dtype="d"))]
-                        generated_sentence = "{} {} دمای {} {} {}، {} درجه سانتی‌گراد است".format(
-                            g_word1, g_word2, location[0], " و ".join(tr_time(time_iso, tokens, labels)), tr_single_date(date_list[0]), result)
+                        result = res[
+                            func_dict[mean_abs_list[0]](np.array(res, dtype="d"))
+                        ]
+                        generated_sentence = (
+                            "{} {} دمای {} {} {}، {} درجه سانتی‌گراد است".format(
+                                g_word1,
+                                g_word2,
+                                location[0],
+                                " و ".join(tr_time(time_iso, tokens, labels)),
+                                tr_single_date(date_list[0]),
+                                result,
+                            )
+                        )
                 else:
-                    result_g = time_iso[func_dict[mean_abs_list[0]](
-                        np.array(res, dtype="d"))]
+                    result_g = time_iso[
+                        func_dict[mean_abs_list[0]](np.array(res, dtype="d"))
+                    ]
                     result = result_g.strftime("%H:%M")
                     if mean_abs_list[0] == "amax_abs":
                         g_word1 = "گرمترین"
                     else:
                         g_word1 = "سردترین"
-                    generated_sentence = "{} {} بین {} در {} {}، {} است".format(g_word1, g_word2, " و ".join(
-                        tr_time(time_iso, tokens, labels)), location[0], tr_single_date(date_list[0]), tr_single_time(result_g))
+                    generated_sentence = "{} {} بین {} در {} {}، {} است".format(
+                        g_word1,
+                        g_word2,
+                        " و ".join(tr_time(time_iso, tokens, labels)),
+                        location[0],
+                        tr_single_date(date_list[0]),
+                        tr_single_time(result_g),
+                    )
 
-            elif (t == 0 or t == 1) and d == l:
+            elif (t == 0 or t == 1) and d == nl:
                 for dat, lc in zip(date_list, location):
-                    r, _ = func(question, tokens, labels, func_dict[mean_abs_list[1]], time_iso, [
-                                dat], [lc], True)
+                    r, _ = func(
+                        question,
+                        tokens,
+                        labels,
+                        func_dict[mean_abs_list[1]],
+                        time_iso,
+                        [dat],
+                        [lc],
+                        True,
+                    )
                     res.append(r)
                 if ta or mean_abs_list[0] == "mean":
                     if mean_abs_list[0] == "mean":
                         result = "%4.2f" % func_dict[mean_abs_list[0]](
-                            np.array(res, dtype="d"))
+                            np.array(res, dtype="d")
+                        )
                         generated_sentence = "میانگین {} دمای شهرهای {} {}، {} درجه سانتی‌گراد است".format(
-                            g_word2, " و ".join(location), " و ".join(tr_date(date_list, tokens, labels)), result)
+                            g_word2,
+                            " و ".join(location),
+                            " و ".join(tr_date(date_list, tokens, labels)),
+                            result,
+                        )
                     else:
-                        result = res[func_dict[mean_abs_list[0]](
-                            np.array(res, dtype="d"))]
+                        result = res[
+                            func_dict[mean_abs_list[0]](np.array(res, dtype="d"))
+                        ]
                         if mean_abs_list[0] == "amax_abs":
                             g_word1 = "حداقل"
                         else:
                             g_word1 = "حداکثر"
                         generated_sentence = "{} {} دمای هوای شهرهای {} {}، {} درجه سانتی‌گراد است".format(
-                            g_word1, g_word2, " و ".join(location), " و ".join(tr_date(date_list, tokens, labels)), result)
+                            g_word1,
+                            g_word2,
+                            " و ".join(location),
+                            " و ".join(tr_date(date_list, tokens, labels)),
+                            result,
+                        )
                 else:
-                    result = location[func_dict[mean_abs_list[0]](
-                        np.array(res, dtype="d"))]
+                    result = location[
+                        func_dict[mean_abs_list[0]](np.array(res, dtype="d"))
+                    ]
                     if mean_abs_list[0] == "amax_abs":
                         g_word1 = "گرمترین"
                     else:
                         g_word1 = "سردترین"
-                    generated_sentence = "{} {} دمای هوا بین شهرهای {} {}، {} میباشد".format(
-                        g_word1, g_word2, " و ".join(location), " و ".join(tr_date(date_list, tokens, labels)), result)
+                    generated_sentence = (
+                        "{} {} دمای هوا بین شهرهای {} {}، {} میباشد".format(
+                            g_word1,
+                            g_word2,
+                            " و ".join(location),
+                            " و ".join(tr_date(date_list, tokens, labels)),
+                            result,
+                        )
+                    )
 
-            elif t == l and d == 1:
+            elif t == nl and d == 1:
                 for tim, lc in zip(time_iso, location):
-                    res.append(func(question, tokens, labels, func_dict[mean_abs_list[1]], [
-                               tim], date_list, [lc], True))
+                    res.append(
+                        func(
+                            question,
+                            tokens,
+                            labels,
+                            func_dict[mean_abs_list[1]],
+                            [tim],
+                            date_list,
+                            [lc],
+                            True,
+                        )
+                    )
                 if ta or mean_abs_list[0] == "mean":
                     if mean_abs_list[0] == "mean":
                         result = "%4.2f" % func_dict[mean_abs_list[0]](
-                            np.array(res, dtype="d"))
-                        generated_sentence = "میانگین {} دما در {} {} {}، {} درجه سانتی‌گراد است".format(g_word2, " و ".join(
-                            location), " و ".join(tr_time(time_iso, tokens, labels)), tr_single_date(date_list[0]), result)
+                            np.array(res, dtype="d")
+                        )
+                        generated_sentence = (
+                            "میانگین {} دما در {} {} {}، {} درجه سانتی‌گراد است".format(
+                                g_word2,
+                                " و ".join(location),
+                                " و ".join(tr_time(time_iso, tokens, labels)),
+                                tr_single_date(date_list[0]),
+                                result,
+                            )
+                        )
                     else:
-                        result = res[func_dict[mean_abs_list[0]](
-                            np.array(res, dtype="d"))]
+                        result = res[
+                            func_dict[mean_abs_list[0]](np.array(res, dtype="d"))
+                        ]
                         if mean_abs_list[0] == "amax_abs":
                             g_word1 = "حداقل"
                         else:
                             g_word1 = "حداکثر"
-                        generated_sentence = "{} {} دمای هوا {} {} {}، {} درجه سانتیگراد هست".format()
+                        generated_sentence = (
+                            "{} {} دمای هوا {}، {} درجه سانتیگراد هست".format(
+                                g_word1,
+                                " و ".join(tr_time(time_iso, tokens, labels)),
+                                tr_single_date(date_list[0]),
+                                result,
+                            )
+                        )
                 else:
-                    result = location[func_dict[mean_abs_list[0]](
-                        np.array(res, dtype="d"))]
+                    result = location[
+                        func_dict[mean_abs_list[0]](np.array(res, dtype="d"))
+                    ]
                     if mean_abs_list[0] == "amax_abs":
                         g_word1 = "گرمترین"
                     else:
                         g_word1 = "سردترین"
-                    generated_sentence = "{} {} دمای هوا بین {} {} در {} شهر {} دارا میباشد".format(g_word1, g_word2, " و ".join(
-                        tr_time(time_iso, tokens, labels)), " و ".join(location), tr_single_date(date_list[0]), result)
+                    generated_sentence = (
+                        "{} {} دمای هوا بین {} {} در {} شهر {} دارا میباشد".format(
+                            g_word1,
+                            g_word2,
+                            " و ".join(tr_time(time_iso, tokens, labels)),
+                            " و ".join(location),
+                            tr_single_date(date_list[0]),
+                            result,
+                        )
+                    )
 
-            elif t == d and l == 1:
+            elif t == d and nl == 1:
                 for tim, dat in zip(time_iso, date_list):
-                    res.append(func(question, tokens, labels, func_dict[mean_abs_list[1]], [
-                               tim], [dat], location, True))
+                    res.append(
+                        func(
+                            question,
+                            tokens,
+                            labels,
+                            func_dict[mean_abs_list[1]],
+                            [tim],
+                            [dat],
+                            location,
+                            True,
+                        )
+                    )
                 if ta or mean_abs_list[0] == "mean":
                     if mean_abs_list[0] == "mean":
                         result = "%4.2f" % func_dict[mean_abs_list[0]](
-                            np.array(res, dtype="d"))
-                        generated_sentence = "میانگین {} دمای هوای {} {} {}، {} درجه سانتی‌گراد است".format(g_word2, location[0], " و ".join(
-                            tr_time(time_iso, tokens, labels)), " و ".join(tr_date(date_list, tokens, labels)), result)
+                            np.array(res, dtype="d")
+                        )
+                        generated_sentence = "میانگین {} دمای هوای {} {} {}، {} درجه سانتی‌گراد است".format(
+                            g_word2,
+                            location[0],
+                            " و ".join(tr_time(time_iso, tokens, labels)),
+                            " و ".join(tr_date(date_list, tokens, labels)),
+                            result,
+                        )
                     else:
-                        result = res[func_dict[mean_abs_list[0]](
-                            np.array(res, dtype="d"))]
+                        result = res[
+                            func_dict[mean_abs_list[0]](np.array(res, dtype="d"))
+                        ]
                         if mean_abs_list[0] == "amax_abs":
                             g_word1 = "حداقل"
                         else:
                             g_word1 = "حداکثر"
-                        generated_sentence = "{} {} دمای هوای {} {} {}، {} درجه سانتی‌گراد است".format(g_word1, g_word2, location[0], " و ".join(
-                            tr_time(time_iso, tokens, labels)), " و ".join(tr_date(date_list, tokens, labels)), result)
+                        generated_sentence = (
+                            "{} {} دمای هوای {} {} {}، {} درجه سانتی‌گراد است".format(
+                                g_word1,
+                                g_word2,
+                                location[0],
+                                " و ".join(tr_time(time_iso, tokens, labels)),
+                                " و ".join(tr_date(date_list, tokens, labels)),
+                                result,
+                            )
+                        )
                 else:
-                    result_g = date_list[func_dict[mean_abs_list[0]](
-                        np.array(res, dtype="d"))]
+                    result_g = date_list[
+                        func_dict[mean_abs_list[0]](np.array(res, dtype="d"))
+                    ]
                     result = gregorian_to_jalali(
-                        result_g.year, result_g.month, result_g.day)
+                        result_g.year, result_g.month, result_g.day
+                    )
                     result = format_jalali_date(result)
                     if mean_abs_list[0] == "amax_abs":
                         g_word1 = "گرمترین"
                     else:
                         g_word1 = "سردترین"
-                    generated_sentence = "در بین {} {} {} {} دمای {}،را روز {} دارد".format(" و ".join(tr_date(
-                        date_list, tokens, labels)), " و ".join(tr_time(time_iso, tokens, labels)), g_word1, g_word2, location[0], tr_single_date(result_g))
+                    generated_sentence = (
+                        "در بین {} {} {} {} دمای {}،را روز {} دارد".format(
+                            " و ".join(tr_date(date_list, tokens, labels)),
+                            " و ".join(tr_time(time_iso, tokens, labels)),
+                            g_word1,
+                            g_word2,
+                            location[0],
+                            tr_single_date(result_g),
+                        )
+                    )
             return result, generated_sentence
 
-    def min_max_handler(self, question, tokens, labels, min_max_func, time_iso, date_list, location, force_return_temp=False):
+    def min_max_handler(
+        self,
+        question,
+        tokens,
+        labels,
+        min_max_func,
+        time_iso,
+        date_list,
+        location,
+        force_return_temp=False,
+    ):
         t = len(time_iso)
         d = len(date_list)
-        l = len(location)
+        nl = len(location)
 
         # t1 d1 l1 ---> this shouldn't happen but anyway!
-        if t == 1 and d == 1 and l == 1:
+        if t == 1 and d == 1 and nl == 1:
             t = 0
         # t0 d1 l1
-        if t == 0 and d == 1 and l == 1:
+        if t == 0 and d == 1 and nl == 1:
             # get the the temperature of the entire day
             temp = self.getCityWeatherInDatePeriod(
                 location[-1],
-                datetime.datetime.combine(date_list[-1].date(),
-                                          datetime.time(1, 0)),
-                datetime.datetime.combine(date_list[-1].date(),
-                                          datetime.time(23, 0)),
+                datetime.datetime.combine(date_list[-1].date(), datetime.time(1, 0)),
+                datetime.datetime.combine(date_list[-1].date(), datetime.time(23, 0)),
             )
             # find out if it's the temperature or the time that the question wants
             is_time_asked = False
@@ -1093,24 +1666,36 @@ class Weather:
             if is_time_asked:
                 result = temp["dt_txt"].iloc[result].time().strftime("%H:%M")
                 if min_max_func == np.argmax:
-                    generated_sentence = "حداکثر دما {} در {} در ساعت {} رخ خواهد داد".format(
-                        tr_date(date_list, tokens, labels)[0], location[0], result)
+                    generated_sentence = (
+                        "حداکثر دما {} در {} در ساعت {} رخ خواهد داد".format(
+                            tr_date(date_list, tokens, labels)[0], location[0], result
+                        )
+                    )
                 else:
-                    generated_sentence = "حداقل دما {} در {} در ساعت {} رخ خواهد داد".format(
-                        tr_date(date_list, tokens, labels)[0], location[0], result)
+                    generated_sentence = (
+                        "حداقل دما {} در {} در ساعت {} رخ خواهد داد".format(
+                            tr_date(date_list, tokens, labels)[0], location[0], result
+                        )
+                    )
 
             else:
                 result = temp["temp"].iloc[result]
                 generated_sentence = "temp_time"
                 if min_max_func == np.argmin:
-                    generated_sentence = "حداقل دمای {} در {} {} درجه سانتی گراد میباشد".format(
-                        tr_date(date_list, tokens, labels)[0], location[0], result)
+                    generated_sentence = (
+                        "حداقل دمای {} در {} {} درجه سانتی گراد میباشد".format(
+                            tr_date(date_list, tokens, labels)[0], location[0], result
+                        )
+                    )
                 else:
-                    generated_sentence = "حداکثر دمای {} در {} {} درجه سانتی گراد میباشد".format(
-                        tr_date(date_list, tokens, labels)[0], location[0], result)
+                    generated_sentence = (
+                        "حداکثر دمای {} در {} {} درجه سانتی گراد میباشد".format(
+                            tr_date(date_list, tokens, labels)[0], location[0], result
+                        )
+                    )
             return str(result), generated_sentence
         # t0or1 d1 l>=2
-        if (t == 0 or t == 1) and d == 1 and l >= 2:
+        if (t == 0 or t == 1) and d == 1 and nl >= 2:
             if t == 0:
                 if "صبح" in question:
                     time_iso.append(datetime.time(8, 0))
@@ -1120,31 +1705,61 @@ class Weather:
                     time_iso.append(datetime.time(12, 0))
             res = []
             for lc in location:
-                res.append(self.getCityWeather(
-                    lc, datetime.datetime.combine(date_list[0].date(), time_iso[0]))["temp"])
+                res.append(
+                    self.getCityWeather(
+                        lc, datetime.datetime.combine(date_list[0].date(), time_iso[0])
+                    )["temp"]
+                )
             result = location[min_max_func(res)]
             if t == 0:
                 if min_max_func == np.argmin:
-                    generated_sentence = "بین شهرهای {}،  {} دمای هوای {} سردتر است".format(
-                        " و ".join(location), tr_date(date_list, tokens, labels)[0], result)
+                    generated_sentence = (
+                        "بین شهرهای {}،  {} دمای هوای {} سردتر است".format(
+                            " و ".join(location),
+                            tr_date(date_list, tokens, labels)[0],
+                            result,
+                        )
+                    )
                 else:
-                    generated_sentence = "بین شهرهای {}، {} دمای هوای {} گرم‌تر است".format(
-                        " و ".join(location), tr_date(date_list, tokens, labels)[0], result)
+                    generated_sentence = (
+                        "بین شهرهای {}، {} دمای هوای {} گرم‌تر است".format(
+                            " و ".join(location),
+                            tr_date(date_list, tokens, labels)[0],
+                            result,
+                        )
+                    )
             else:
                 if min_max_func == np.argmin:
-                    generated_sentence = "بین شهرهای {}، {} {} دمای هوای {} سردتر است".format(
-                        " و ".join(location), tr_date(date_list, tokens, labels)[0], tr_time(time_iso, tokens, labels)[0], result)
+                    generated_sentence = (
+                        "بین شهرهای {}، {} {} دمای هوای {} سردتر است".format(
+                            " و ".join(location),
+                            tr_date(date_list, tokens, labels)[0],
+                            tr_time(time_iso, tokens, labels)[0],
+                            result,
+                        )
+                    )
                 else:
-                    generated_sentence = "بین شهرهای {}، {} {} دمای هوای {} گرمتر است".format(
-                        " و ".join(location), tr_date(date_list, tokens, labels)[0],  tr_time(time_iso, tokens, labels)[0], result)
+                    generated_sentence = (
+                        "بین شهرهای {}، {} {} دمای هوای {} گرمتر است".format(
+                            " و ".join(location),
+                            tr_date(date_list, tokens, labels)[0],
+                            tr_time(time_iso, tokens, labels)[0],
+                            result,
+                        )
+                    )
 
             return result, generated_sentence
         # t0 d>=2 l1
-        if t == 0 and d >= 2 and l == 1:
+        if t == 0 and d >= 2 and nl == 1:
             res = self.getCityWeatherInDatePeriod(
-                location[0], datetime.datetime.combine(
-                    np.min(date_list).date(), datetime.time(1, 0)),
-                datetime.datetime.combine(np.max(date_list).date(), datetime.time(23, 59)))
+                location[0],
+                datetime.datetime.combine(
+                    np.min(date_list).date(), datetime.time(1, 0)
+                ),
+                datetime.datetime.combine(
+                    np.max(date_list).date(), datetime.time(23, 59)
+                ),
+            )
             if not res.empty:
                 ta = False
                 for ita in temp_asked:
@@ -1153,31 +1768,55 @@ class Weather:
                 if ta or force_return_temp:
                     result = res["temp"].iloc[min_max_func(res["temp"])]
                     if min_max_func == np.argmax:
-                        generated_sentence = "حداکثر دما در {}، {}، {} درجه سانتی‌گراد است".format(
-                            " و ".join(tr_date(date_list, tokens, labels)), location[0], result)
+                        generated_sentence = (
+                            "حداکثر دما در {}، {}، {} درجه سانتی‌گراد است".format(
+                                " و ".join(tr_date(date_list, tokens, labels)),
+                                location[0],
+                                result,
+                            )
+                        )
                     else:
-                        generated_sentence = "حداقل دما در ،{} {}، {} درجه سانتی‌گراد است".format(
-                            " و ".join(tr_date(date_list, tokens, labels)), location[0], result)
+                        generated_sentence = (
+                            "حداقل دما در ،{} {}، {} درجه سانتی‌گراد است".format(
+                                " و ".join(tr_date(date_list, tokens, labels)),
+                                location[0],
+                                result,
+                            )
+                        )
                 else:
                     result_g = res["dt_txt"].iloc[min_max_func(res["temp"])]
                     result = gregorian_to_jalali(
-                        result_g.year, result_g.month, result_g.day)
+                        result_g.year, result_g.month, result_g.day
+                    )
                     result = format_jalali_date(result)
                     result_g = tr_single_date(result_g)
                     if min_max_func == np.argmax:
-                        generated_sentence = "گرمترین روز بین روزهای {} در {}، {} میباشد ".format(
-                            " و ".join(tr_date(date_list, tokens, labels)), location[0], result_g)
+                        generated_sentence = (
+                            "گرمترین روز بین روزهای {} در {}، {} میباشد ".format(
+                                " و ".join(tr_date(date_list, tokens, labels)),
+                                location[0],
+                                result_g,
+                            )
+                        )
                     else:
-                        generated_sentence = "سردترین روز بین روزهای {} در {}، {} میباشد".format(
-                            " و ".join(tr_date(date_list, tokens, labels)), location[0], result_g)
+                        generated_sentence = (
+                            "سردترین روز بین روزهای {} در {}، {} میباشد".format(
+                                " و ".join(tr_date(date_list, tokens, labels)),
+                                location[0],
+                                result_g,
+                            )
+                        )
                 return result, generated_sentence
 
         # t1 d>=2 l1
-        if t == 1 and d >= 2 and l == 1:
+        if t == 1 and d >= 2 and nl == 1:
             res = []
             for dat in date_list:
-                res.append(self.getCityWeather(
-                    location[0], datetime.datetime.combine(dat.date(), time_iso[0]))["temp"])
+                res.append(
+                    self.getCityWeather(
+                        location[0], datetime.datetime.combine(dat.date(), time_iso[0])
+                    )["temp"]
+                )
 
             ta = False
             for ita in temp_asked:
@@ -1186,33 +1825,62 @@ class Weather:
             if ta or force_return_temp:
                 result = min_max_func(res)
                 if min_max_func == np.argmax:
-                    generated_sentence = "حداکثر دمای {} در {} در {}، {} درجه سانتی‌گراد است".format(location[0],
-                                                                                                     " و ".join(tr_date(date_list, tokens, labels)), tr_single_time(time_iso[0]), result)
+                    generated_sentence = (
+                        "حداکثر دمای {} در {} در {}، {} درجه سانتی‌گراد است".format(
+                            location[0],
+                            " و ".join(tr_date(date_list, tokens, labels)),
+                            tr_single_time(time_iso[0]),
+                            result,
+                        )
+                    )
                 else:
-                    generated_sentence = "حداقل دمای {} در {} در {}، {} درجه سانتی‌گراد است".format(location[0],
-                                                                                                    " و ".join(tr_date(date_list, tokens, labels)), tr_single_time(time_iso[0]), result)
+                    generated_sentence = (
+                        "حداقل دمای {} در {} در {}، {} درجه سانتی‌گراد است".format(
+                            location[0],
+                            " و ".join(tr_date(date_list, tokens, labels)),
+                            tr_single_time(time_iso[0]),
+                            result,
+                        )
+                    )
 
             else:
                 result_g = date_list[min_max_func(res)]
                 result = gregorian_to_jalali(
-                    result_g.year, result_g.month, result_g.day)
+                    result_g.year, result_g.month, result_g.day
+                )
                 result = format_jalali_date(result)
                 result_g = tr_single_date(result_g)
                 if min_max_func == np.argmax:
-                    generated_sentence = "گرمترین روز {} بین روزهای {} در {}، {} میباشد ".format(location[0],
-                                                                                                 " و ".join(tr_date(date_list, tokens, labels)), tr_single_time(time_iso[0]), result_g)
+                    generated_sentence = (
+                        "گرمترین روز {} بین روزهای {} در {}، {} میباشد ".format(
+                            location[0],
+                            " و ".join(tr_date(date_list, tokens, labels)),
+                            tr_single_time(time_iso[0]),
+                            result_g,
+                        )
+                    )
                 else:
-                    generated_sentence = "سردترین روز {} بین روزهای {} در {}، {} میباشد".format(location[0],
-                                                                                                " و ".join(tr_date(date_list, tokens, labels)), tr_single_time(time_iso[0]), result_g)
+                    generated_sentence = (
+                        "سردترین روز {} بین روزهای {} در {}، {} میباشد".format(
+                            location[0],
+                            " و ".join(tr_date(date_list, tokens, labels)),
+                            tr_single_time(time_iso[0]),
+                            result_g,
+                        )
+                    )
 
             return result, generated_sentence
 
         # t>=2 d1 l1
-        if t >= 2 and d == 1 and l == 1:
+        if t >= 2 and d == 1 and nl == 1:
             res = []
-            for time in time_iso:
-                res.append(self.getCityWeather(
-                    location[0], datetime.datetime.combine(date_list[0].date(), time))["temp"])
+            for tt in time_iso:
+                res.append(
+                    self.getCityWeather(
+                        location[0],
+                        datetime.datetime.combine(date_list[0].date(), tt),
+                    )["temp"]
+                )
             ta = False
             for ita in temp_asked:
                 if ita in question:
@@ -1220,23 +1888,47 @@ class Weather:
             if ta or force_return_temp:
                 result = min_max_func(res)
                 if min_max_func == np.argmax:
-                    generated_sentence = "حداکثر دمای {} در {} در {}، {} درجه سانتی‌گراد است".format(location[0],
-                                                                                                     tr_single_date(date_list[0]), " و ".join(tr_time(time_iso, tokens, labels)), result)
+                    generated_sentence = (
+                        "حداکثر دمای {} در {} در {}، {} درجه سانتی‌گراد است".format(
+                            location[0],
+                            tr_single_date(date_list[0]),
+                            " و ".join(tr_time(time_iso, tokens, labels)),
+                            result,
+                        )
+                    )
                 else:
-                    generated_sentence = "حداقل دمای {} در {} در {}، {} درجه سانتی‌گراد است".format(location[0],
-                                                                                                    tr_single_date(date_list[0]), " و ".join(tr_time(time_iso, tokens, labels)), result)
+                    generated_sentence = (
+                        "حداقل دمای {} در {} در {}، {} درجه سانتی‌گراد است".format(
+                            location[0],
+                            tr_single_date(date_list[0]),
+                            " و ".join(tr_time(time_iso, tokens, labels)),
+                            result,
+                        )
+                    )
             else:
                 result_g = time_iso[min_max_func(res)]
                 result = result_g.strftime("%H:%M")
                 if min_max_func == np.argmax:
-                    generated_sentence = "گرمترین زمان بین {} {} در {}، {} میباشد ".format(" و ".join(tr_time(
-                        time_iso, tokens, labels)), tr_single_date(date_list[0]), location[0], tr_single_time(result_g))
+                    generated_sentence = (
+                        "گرمترین زمان بین {} {} در {}، {} میباشد ".format(
+                            " و ".join(tr_time(time_iso, tokens, labels)),
+                            tr_single_date(date_list[0]),
+                            location[0],
+                            tr_single_time(result_g),
+                        )
+                    )
                 else:
-                    generated_sentence = "سردترین زمان بین {}، {} در {}، {} میباشد ".format(" و ".join(tr_time(
-                        time_iso, tokens, labels)), tr_single_date(date_list[0]), location[0], tr_single_time(result_g))
+                    generated_sentence = (
+                        "سردترین زمان بین {}، {} در {}، {} میباشد ".format(
+                            " و ".join(tr_time(time_iso, tokens, labels)),
+                            tr_single_date(date_list[0]),
+                            location[0],
+                            tr_single_time(result_g),
+                        )
+                    )
             return result, generated_sentence
         # t0or1 d==l
-        if (t == 0 or t == 1) and d == l:
+        if (t == 0 or t == 1) and d == nl:
             if t == 0:
                 if "صبح" in question:
                     time_iso.append(datetime.time(8, 0))
@@ -1246,8 +1938,11 @@ class Weather:
                     time_iso.append(datetime.time(12, 0))
             res = []
             for lc, dat in zip(location, date_list):
-                res.append(self.getCityWeather(
-                    lc, datetime.datetime.combine(dat.date(), time_iso[0]))["temp"])
+                res.append(
+                    self.getCityWeather(
+                        lc, datetime.datetime.combine(dat.date(), time_iso[0])
+                    )["temp"]
+                )
             ta = False
             for ita in temp_asked:
                 if ita in question:
@@ -1256,25 +1951,44 @@ class Weather:
                 result = min_max_func(res)
                 if min_max_func == np.argmax:
                     generated_sentence = "بین شهرهای {} در {} حداکثر دما {} درجه سانتی‌گراد میباشد".format(
-                        " و ".join(location), " و ".join(tr_date(date_list, tokens, labels)), result)
+                        " و ".join(location),
+                        " و ".join(tr_date(date_list, tokens, labels)),
+                        result,
+                    )
                 else:
                     generated_sentence = "بین شهرهای {} در {} حداکثر دما {} درجه سانتی‌گراد میباشد".format(
-                        " و ".join(location), " و ".join(tr_date(date_list, tokens, labels)), result)
+                        " و ".join(location),
+                        " و ".join(tr_date(date_list, tokens, labels)),
+                        result,
+                    )
             else:
                 result = location[min_max_func(res)]
                 if min_max_func == np.argmax:
-                    generated_sentence = "بین شهرهای {} در {} گرمترین شهر، {} است".format(
-                        " و ".join(location), " و ".join(tr_date(date_list, tokens, labels)), result)
+                    generated_sentence = (
+                        "بین شهرهای {} در {} گرمترین شهر، {} است".format(
+                            " و ".join(location),
+                            " و ".join(tr_date(date_list, tokens, labels)),
+                            result,
+                        )
+                    )
                 else:
-                    generated_sentence = "بین شهرهای {} در {} سردترین شهر، {} است".format(
-                        " و ".join(location), " و ".join(tr_date(date_list, tokens, labels)), result)
+                    generated_sentence = (
+                        "بین شهرهای {} در {} سردترین شهر، {} است".format(
+                            " و ".join(location),
+                            " و ".join(tr_date(date_list, tokens, labels)),
+                            result,
+                        )
+                    )
             return result, generated_sentence
         # t==d l1
-        if (t == d) and l == 1:
+        if (t == d) and nl == 1:
             res = []
-            for time, dat in zip(time_iso, date_list):
-                res.append(self.getCityWeather(
-                    location[0], datetime.datetime.combine(dat.date(), time))["temp"])
+            for tt, dat in zip(time_iso, date_list):
+                res.append(
+                    self.getCityWeather(
+                        location[0], datetime.datetime.combine(dat.date(), tt)
+                    )["temp"]
+                )
             ta = False
             for ita in temp_asked:
                 if ita in question:
@@ -1282,31 +1996,55 @@ class Weather:
             if ta or force_return_temp:
                 result = min_max_func(res)
                 if min_max_func == np.argmax:
-                    generated_sentence = "حداکثر دمای {} در {}، {}، {} درجه سانتی‌گراد میباشد".format(
-                        location[0], " و ".join(tr_date(date_list, tokens, labels)), " و ".join(tr_time(time_iso, tokens, labels)), round(float(result)))
+                    generated_sentence = (
+                        "حداکثر دمای {} در {}، {}، {} درجه سانتی‌گراد میباشد".format(
+                            location[0],
+                            " و ".join(tr_date(date_list, tokens, labels)),
+                            " و ".join(tr_time(time_iso, tokens, labels)),
+                            round(float(result)),
+                        )
+                    )
                 else:
-                    generated_sentence = "حداقل دمای {} در {}، {}، {} درجه سانتی‌گراد میباشد".format(
-                        location[0], " و ".join(tr_date(date_list, tokens, labels)), " و ".join(tr_time(time_iso, tokens, labels)), round(float(result)))
+                    generated_sentence = (
+                        "حداقل دمای {} در {}، {}، {} درجه سانتی‌گراد میباشد".format(
+                            location[0],
+                            " و ".join(tr_date(date_list, tokens, labels)),
+                            " و ".join(tr_time(time_iso, tokens, labels)),
+                            round(float(result)),
+                        )
+                    )
             else:
                 result_g = date_list[min_max_func(res)]
                 result = gregorian_to_jalali(
-                    result_g.year, result_g.month, result_g.day)
+                    result_g.year, result_g.month, result_g.day
+                )
                 result = format_jalali_date(result)
                 result_g = tr_single_date(result_g)
                 if min_max_func == np.argmax:
                     generated_sentence = "گرمترین زمان بین {}، {} در {} {} است".format(
-                        " و ".join(tr_time(time_iso, tokens, labels)), " و ".join(tr_date(date_list, tokens, labels)), location[0], result_g)
+                        " و ".join(tr_time(time_iso, tokens, labels)),
+                        " و ".join(tr_date(date_list, tokens, labels)),
+                        location[0],
+                        result_g,
+                    )
                 else:
                     generated_sentence = "سردترین زمان بین {}، {} در {} {} است".format(
-                        " و ".join(tr_time(time_iso, tokens, labels)), " و ".join(tr_date(date_list, tokens, labels)), location[0], result_g)
+                        " و ".join(tr_time(time_iso, tokens, labels)),
+                        " و ".join(tr_date(date_list, tokens, labels)),
+                        location[0],
+                        result_g,
+                    )
 
             return result, generated_sentence
         # t==l d1
-        if (t == l) and d == 1:
+        if (t == nl) and d == 1:
             res = []
-            for time, lc in zip(time_iso, location):
-                res.append(self.getCityWeather(
-                    lc, datetime.datetime.combine(date_list[0].date(), time))["temp"])
+            for tt, lc in zip(time_iso, location):
+                res.append(
+                    self.getCityWeather(
+                        lc, datetime.datetime.combine(date_list[0].date(), tt)
+                    )["temp"]
+                )
             ta = False
             for ita in temp_asked:
                 if ita in question:
@@ -1314,42 +2052,75 @@ class Weather:
             if ta or force_return_temp:
                 result = min_max_func(res)
                 if min_max_func == np.argmax:
-                    generated_sentence = "حداکثر دمای شهرهای {} در {} {}، {} درجه‌ی سانتی‌گراد میباشد".format(" و ".join(
-                        location), tr_single_date(date_list[0]), " و ".join(tr_time(time_iso, tokens, labels)), round(float(result)))
+                    generated_sentence = "حداکثر دمای شهرهای {} در {} {}، {} درجه‌ی سانتی‌گراد میباشد".format(
+                        " و ".join(location),
+                        tr_single_date(date_list[0]),
+                        " و ".join(tr_time(time_iso, tokens, labels)),
+                        round(float(result)),
+                    )
                 else:
-                    generated_sentence = "حداقل دمای شهرهای {} در {} {}، {} درجه‌ی سانتی‌گراد میباشد".format(" و ".join(
-                        location), tr_single_date(date_list[0]), " و ".join(tr_time(time_iso, tokens, labels)), round(float(result)))
+                    generated_sentence = "حداقل دمای شهرهای {} در {} {}، {} درجه‌ی سانتی‌گراد میباشد".format(
+                        " و ".join(location),
+                        tr_single_date(date_list[0]),
+                        " و ".join(tr_time(time_iso, tokens, labels)),
+                        round(float(result)),
+                    )
             else:
                 result = location[min_max_func(res)]
                 if min_max_func == np.argmax:
-                    generated_sentence = "گرمترین شهر بین شهرهای {} در زمان {} در {}، {} است".format(" و ".join(
-                        location), " و ".join(tr_time(time_iso, tokens, labels)), tr_single_date(date_list[0]), result)
+                    generated_sentence = (
+                        "گرمترین شهر بین شهرهای {} در زمان {} در {}، {} است".format(
+                            " و ".join(location),
+                            " و ".join(tr_time(time_iso, tokens, labels)),
+                            tr_single_date(date_list[0]),
+                            result,
+                        )
+                    )
                 else:
-                    generated_sentence = "سردترین شهر بین شهرهای {} در زمان {} در {}، {} است".format(" و ".join(
-                        location), " و ".join(tr_time(time_iso, tokens, labels)), tr_single_date(date_list[0]), result)
+                    generated_sentence = (
+                        "سردترین شهر بین شهرهای {} در زمان {} در {}، {} است".format(
+                            " و ".join(location),
+                            " و ".join(tr_time(time_iso, tokens, labels)),
+                            tr_single_date(date_list[0]),
+                            result,
+                        )
+                    )
             return result, generated_sentence
         return None, None
 
-    def mean_handler(self, question, tokens, labels, mean_func, time_iso, date_list, location, force_temp=True):
+    def mean_handler(
+        self,
+        question,
+        tokens,
+        labels,
+        mean_func,
+        time_iso,
+        date_list,
+        location,
+        force_temp=True,
+    ):
         t = len(time_iso)
         d = len(date_list)
-        l = len(location)
+        nl = len(location)
         # t1 d1 l1 ---> this shouldn't happen but anyway
-        if t == 1 and d == 1 and l == 1:
+        if t == 1 and d == 1 and nl == 1:
             t = 0
         # t0 d1 l1
-        if t == 0 and d == 1 and l == 1:
+        if t == 0 and d == 1 and nl == 1:
             temp = self.getCityWeatherInDatePeriod(
                 location[-1],
-                datetime.datetime.combine(date_list[-1].date(),
-                                          datetime.time(1, 0)),
-                datetime.datetime.combine(date_list[-1].date(),
-                                          datetime.time(23, 0)),
+                datetime.datetime.combine(date_list[-1].date(), datetime.time(1, 0)),
+                datetime.datetime.combine(date_list[-1].date(), datetime.time(23, 0)),
             )
             mean_ = mean_func(temp["temp"].to_numpy())
-            return "%4.2f" % mean_, "میانگین دمای هوای {}، {}، {} درجه‌ی سانتی‌گراد است".format(location[0], tr_single_date(date_list[0]), round(mean_))
+            return (
+                "%4.2f" % mean_,
+                "میانگین دمای هوای {}، {}، {} درجه‌ی سانتی‌گراد است".format(
+                    location[0], tr_single_date(date_list[0]), round(mean_)
+                ),
+            )
         # t0or1 d1 l>=2
-        if (t == 0 or t == 1) and d == 1 and l >= 2:
+        if (t == 0 or t == 1) and d == 1 and nl >= 2:
             res = []
             if t == 0:
                 if "صبح" in question:
@@ -1361,81 +2132,144 @@ class Weather:
 
             generated_sentence = []
             for i, lc in enumerate(location):
-                res.append("%4.2f" % np.mean(self.getCityWeather(
-                    lc, datetime.datetime.combine(date_list[0].date(), time_iso[0]))["temp"]))
-                generated_sentence.append("میانگین دمای هوای {} {}، {} درجه‌ی سانتی‌گراد است".format(
-                    lc, tr_single_date(date_list[0]), res[i]))
+                res.append(
+                    "%4.2f"
+                    % np.mean(
+                        self.getCityWeather(
+                            lc,
+                            datetime.datetime.combine(date_list[0].date(), time_iso[0]),
+                        )["temp"]
+                    )
+                )
+                generated_sentence.append(
+                    "میانگین دمای هوای {} {}، {} درجه‌ی سانتی‌گراد است".format(
+                        lc, tr_single_date(date_list[0]), res[i]
+                    )
+                )
             return res, " و ".join(generated_sentence)
 
         # t0 d>=2 l1
-        if t == 0 and d >= 2 and l == 1:
+        if t == 0 and d >= 2 and nl == 1:
             res = self.getCityWeatherInDatePeriod(
-                location[0], datetime.datetime.combine(
-                    np.min(date_list).date(), datetime.time(1, 0)),
-                datetime.datetime.combine(np.max(date_list).date(), datetime.time(23, 59)))["temp"]
+                location[0],
+                datetime.datetime.combine(
+                    np.min(date_list).date(), datetime.time(1, 0)
+                ),
+                datetime.datetime.combine(
+                    np.max(date_list).date(), datetime.time(23, 59)
+                ),
+            )["temp"]
             result = "%4.2f" % mean_func(res)
-            return result, 'میانگین دمای هوای {} در {}، {} درجه‌ی سانتی‌گراد است'.format(location[0], " و ".join(tr_date(date_list, tokens, labels)), result)
+            return result, "میانگین دمای هوای {} در {}، {} درجه‌ی سانتی‌گراد است".format(
+                location[0], " و ".join(tr_date(date_list, tokens, labels)), result
+            )
 
         # t0 d>=2 l1
-        if t == 1 and d >= 2 and l == 1:
+        if t == 1 and d >= 2 and nl == 1:
             res = []
             for d in date_list:
-                res.append(self.getCityWeather(
-                    location[0], datetime.datetime.combine(d.date(), time_iso[0]))["temp"])
+                res.append(
+                    self.getCityWeather(
+                        location[0], datetime.datetime.combine(d.date(), time_iso[0])
+                    )["temp"]
+                )
             result = "%4.2f" % mean_func(res)
-            generated_sentence = 'میانگین دمای هوای {} {} {}، {} درجه‌ی سانتی‌گراد می‌باشد'.format(location[0], " و ".join(tr_date(date_list, tokens, labels)),
-                                                                                                   tr_single_time(time_iso[0]), result)
+            generated_sentence = (
+                "میانگین دمای هوای {} {} {}، {} درجه‌ی سانتی‌گراد می‌باشد".format(
+                    location[0],
+                    " و ".join(tr_date(date_list, tokens, labels)),
+                    tr_single_time(time_iso[0]),
+                    result,
+                )
+            )
             return result, generated_sentence
         # t>=2 d1 l1
-        if t >= 2 and d == 1 and l == 1:
+        if t >= 2 and d == 1 and nl == 1:
             res = []
             for tim in time_iso:
-                res.append(self.getCityWeather(
-                    location[0], datetime.datetime.combine(date_list[0].date(), tim))["temp"])
+                res.append(
+                    self.getCityWeather(
+                        location[0], datetime.datetime.combine(date_list[0].date(), tim)
+                    )["temp"]
+                )
             result = "%4.2f" % mean_func(res)
-            generated_sentence = 'میانگین دمای هوای {} {} {}، {} درجه‌ی سانتی‌گراد می‌باشد'.format(location[0], " و ".join(tr_time(time_iso, tokens, labels)),
-                                                                                                   tr_single_date(date_list[0]), result)
+            generated_sentence = (
+                "میانگین دمای هوای {} {} {}، {} درجه‌ی سانتی‌گراد می‌باشد".format(
+                    location[0],
+                    " و ".join(tr_time(time_iso, tokens, labels)),
+                    tr_single_date(date_list[0]),
+                    result,
+                )
+            )
 
             return result, generated_sentence
         # t0or1 d==l
-        if (t == 0 or t == 1) and d == l:
+        if (t == 0 or t == 1) and d == nl:
             res = []
             for lc, dat in zip(location, date_list):
-                res.append(self.getCityWeather(
-                    lc, datetime.datetime.combine(dat.date(), time_iso[0]))["temp"])
+                res.append(
+                    self.getCityWeather(
+                        lc, datetime.datetime.combine(dat.date(), time_iso[0])
+                    )["temp"]
+                )
             result = "%4.2f" % mean_func(res)
-            generated_sentence = 'میانگین دمای هوای {} {} {}، {} درجه سانتی‌گراد می‌باشد'.format(" و ".join(location), " و ".join(tr_date(date_list, tokens, labels)),
-                                                                                                 tr_single_date(date_list[0]), result)
+            generated_sentence = (
+                "میانگین دمای هوای {} {} {}، {} درجه سانتی‌گراد می‌باشد".format(
+                    " و ".join(location),
+                    " و ".join(tr_date(date_list, tokens, labels)),
+                    tr_single_date(date_list[0]),
+                    result,
+                )
+            )
             return mean_func(res)
         # t==d l1
-        if (t == d) and l == 1:
+        if (t == d) and nl == 1:
             res = []
             for tim, dat in zip(time_iso, date_list):
-                res.append(self.getCityWeather(
-                    location[0], datetime.datetime.combine(dat.date(), tim))["temp"])
+                res.append(
+                    self.getCityWeather(
+                        location[0], datetime.datetime.combine(dat.date(), tim)
+                    )["temp"]
+                )
             result = "%4.2f" % mean_func(res)
-            generated_sentence = "میانگین دمای هوای {} {} {}، {} درجه سانتی‌گراد است".format(location[0], " و ".join(tr_date(date_list, tokens, labels)),
-                                                                                             " و ".join(tr_time(time_iso, tokens, labels)), result)
+            generated_sentence = (
+                "میانگین دمای هوای {} {} {}، {} درجه سانتی‌گراد است".format(
+                    location[0],
+                    " و ".join(tr_date(date_list, tokens, labels)),
+                    " و ".join(tr_time(time_iso, tokens, labels)),
+                    result,
+                )
+            )
             return result, generated_sentence
         # t==l d1
-        if (t == l) and d == 1:
+        if (t == nl) and d == 1:
             res = []
             for tim, lc in zip(time_iso, location):
-                res.append(self.getCityWeather(
-                    lc, datetime.datetime.combine(date_list[0].date(), tim))["temp"])
+                res.append(
+                    self.getCityWeather(
+                        lc, datetime.datetime.combine(date_list[0].date(), tim)
+                    )["temp"]
+                )
             result = "%4.2f" % mean_func(res)
-            generated_sentence = "میانگین دمای هوای شهرهای {} {} {}، {} درجه سانتی‌گراد است".format(" و ".join(
-                location), " و ".join(tr_time(time_iso, tokens, labels)), tr_single_date(date_list[0]), result)
+            generated_sentence = (
+                "میانگین دمای هوای شهرهای {} {} {}، {} درجه سانتی‌گراد است".format(
+                    " و ".join(location),
+                    " و ".join(tr_time(time_iso, tokens, labels)),
+                    tr_single_date(date_list[0]),
+                    result,
+                )
+            )
             return result, generated_sentence
         return None, None
 
-
-    def difference_handler(self, question, tokens, labels, time_iso, date_list, location):
+    def difference_handler(
+        self, question, tokens, labels, time_iso, date_list, location
+    ):
         t = len(time_iso)
         d = len(date_list)
-        l = len(location)
+        nl = len(location)
         # t0or1 d1 l>=2
-        if (t == 0 or t == 1) and d == 1 and l >= 2:
+        if (t == 0 or t == 1) and d == 1 and nl >= 2:
             res = []
             if t == 0:
                 if "صبح" in question:
@@ -1446,23 +2280,38 @@ class Weather:
                     time_iso.append(datetime.time(12, 0))
 
             for lc in location:
-                res.append(self.getCityWeather(
-                    lc, datetime.datetime.combine(date_list[0].date(), time_iso[0]))["temp"])
-            if l == 2:
+                res.append(
+                    self.getCityWeather(
+                        lc, datetime.datetime.combine(date_list[0].date(), time_iso[0])
+                    )["temp"]
+                )
+            if nl == 2:
                 result = "%4.2f" % np.abs(np.diff(res))[0]
                 result2 = "%d" % np.abs(np.diff(res))[0]
-                generated_sentence = "اختلاف دمای شهرهای {} {} {} {} درجه‌ی سانتی‌گراد می‌باشد".format(" و ".join(
-                    location), tr_single_date(date_list[0]), tr_single_time(time_iso[0]), result2)
+                generated_sentence = (
+                    "اختلاف دمای شهرهای {} {} {} {} درجه‌ی سانتی‌گراد می‌باشد".format(
+                        " و ".join(location),
+                        tr_single_date(date_list[0]),
+                        tr_single_time(time_iso[0]),
+                        result2,
+                    )
+                )
                 return result, generated_sentence
             else:
                 result = np.abs(np.diff(res))
                 result2 = ["%d" % round(r) for r in result]
-                generated_sentence = "اختلاف دمای شهرهای {} {} {} {} درجه‌ی سانتی‌گراد می‌باشد".format(" و ".join(
-                    location), tr_single_date(date_list[0]), tr_single_time(time_iso[0]), " و ".join(result2))
+                generated_sentence = (
+                    "اختلاف دمای شهرهای {} {} {} {} درجه‌ی سانتی‌گراد می‌باشد".format(
+                        " و ".join(location),
+                        tr_single_date(date_list[0]),
+                        tr_single_time(time_iso[0]),
+                        " و ".join(result2),
+                    )
+                )
                 return result, generated_sentence
 
         # t0 d>=2 l1
-        if (t == 0 or t == 1) and d >= 2 and l == 1:
+        if (t == 0 or t == 1) and d >= 2 and nl == 1:
             if t == 0:
                 if "صبح" in question:
                     time_iso.append(datetime.time(8, 0))
@@ -1473,82 +2322,157 @@ class Weather:
 
             res = []
             for dat in date_list:
-                res.append(self.getCityWeather(
-                    location[0], datetime.datetime.combine(dat.date(), time_iso[0]))["temp"])
+                res.append(
+                    self.getCityWeather(
+                        location[0], datetime.datetime.combine(dat.date(), time_iso[0])
+                    )["temp"]
+                )
             if d == 2:
                 result = "%4.2f" % np.abs(np.diff(res))[0]
-                generated_sentence = "اختلاف دمای {} {} {}، {} درجه سانتی‌گراد است".format(" و ".join(
-                    tr_date(date_list, tokens, labels)), location[0], tr_single_time(time_iso[0]), result)
+                generated_sentence = (
+                    "اختلاف دمای {} {} {}، {} درجه سانتی‌گراد است".format(
+                        " و ".join(tr_date(date_list, tokens, labels)),
+                        location[0],
+                        tr_single_time(time_iso[0]),
+                        result,
+                    )
+                )
                 return result, generated_sentence
             else:
                 result = np.abs(np.diff(res))
-                generated_sentence = "اختلاف دمای {} {} {}، {} درجه سانتی‌گراد است".format(" و ".join(
-                    tr_date(date_list, tokens, labels)), location[0], tr_single_time(time_iso[0]), " و ".join(result))
+                generated_sentence = (
+                    "اختلاف دمای {} {} {}، {} درجه سانتی‌گراد است".format(
+                        " و ".join(tr_date(date_list, tokens, labels)),
+                        location[0],
+                        tr_single_time(time_iso[0]),
+                        " و ".join(result),
+                    )
+                )
                 return result, generated_sentence
 
         # t>=2 d1 l1
-        if t >= 2 and d == 1 and l == 1:
+        if t >= 2 and d == 1 and nl == 1:
             res = []
             for tim in time_iso:
-                res.append(self.getCityWeather(
-                    location[0], datetime.datetime.combine(date_list[0].date(), tim))["temp"])
+                res.append(
+                    self.getCityWeather(
+                        location[0], datetime.datetime.combine(date_list[0].date(), tim)
+                    )["temp"]
+                )
             if t == 2:
                 result = "%4.2f" % np.abs(np.diff(res))[0]
-                generated_sentence = "اختلاف دمای {} {} {}، {} درجه سانتی‌گراد میباشد".format(" و ".join(
-                    tr_time(time_iso, tokens, labels)), location[0], tr_single_date(date_list[0]), result)
+                generated_sentence = (
+                    "اختلاف دمای {} {} {}، {} درجه سانتی‌گراد میباشد".format(
+                        " و ".join(tr_time(time_iso, tokens, labels)),
+                        location[0],
+                        tr_single_date(date_list[0]),
+                        result,
+                    )
+                )
                 return result, generated_sentence
             else:
                 result = np.abs(np.diff(res))
-                generated_sentence = "اختلاف دمای {} {} {}، {} درجه سانتی‌گراد میباشد".format(" و ".join(
-                    tr_time(time_iso, tokens, labels)), location[0], tr_single_date(date_list[0]), " و ".join(result))
+                generated_sentence = (
+                    "اختلاف دمای {} {} {}، {} درجه سانتی‌گراد میباشد".format(
+                        " و ".join(tr_time(time_iso, tokens, labels)),
+                        location[0],
+                        tr_single_date(date_list[0]),
+                        " و ".join(result),
+                    )
+                )
                 return result, generated_sentence
         # t0or1 d==l
-        if (t == 0 or t == 1) and d == l:
+        if (t == 0 or t == 1) and d == nl:
             res = []
             for lc, dat in zip(location, date_list):
-                res.append(self.getCityWeather(
-                    lc, datetime.datetime.combine(dat.date(), time_iso[0]))["temp"])
+                res.append(
+                    self.getCityWeather(
+                        lc, datetime.datetime.combine(dat.date(), time_iso[0])
+                    )["temp"]
+                )
             if d == 2:
                 result = "%4.2f" % np.abs(np.diff(res))[0]
-                generated_sentence = "اختلاف دمای {} {} {}، {} درجه سانتی‌گراد است".format(" و ".join(
-                    tr_date(date_list, tokens, labels)), " و ".join(location), tr_single_time(time_iso[0]), result)
+                generated_sentence = (
+                    "اختلاف دمای {} {} {}، {} درجه سانتی‌گراد است".format(
+                        " و ".join(tr_date(date_list, tokens, labels)),
+                        " و ".join(location),
+                        tr_single_time(time_iso[0]),
+                        result,
+                    )
+                )
                 return result, generated_sentence
             else:
                 result = np.abs(np.diff(res))
-                generated_sentence = "اختلاف دمای {} {} {}، {} درجه سانتی‌گراد است".format(" و ".join(
-                    tr_date(date_list, tokens, labels)), " و ".join(location), tr_single_time(time_iso[0]), " و ".join(result))
+                generated_sentence = (
+                    "اختلاف دمای {} {} {}، {} درجه سانتی‌گراد است".format(
+                        " و ".join(tr_date(date_list, tokens, labels)),
+                        " و ".join(location),
+                        tr_single_time(time_iso[0]),
+                        " و ".join(result),
+                    )
+                )
             return result, generated_sentence
         # t==d l1
-        if (t == d) and l == 1:
+        if (t == d) and nl == 1:
             res = []
             for tim, dat in zip(time_iso, date_list):
-                res.append(self.getCityWeather(
-                    location[0], datetime.datetime.combine(dat.date(), tim))["temp"])
+                res.append(
+                    self.getCityWeather(
+                        location[0], datetime.datetime.combine(dat.date(), tim)
+                    )["temp"]
+                )
             if t == 2:
                 result = "%4.2f" % np.abs(np.diff(res))[0]
-                generated_sentence = "اختلاف دمای {} {} {}، {} درجه سانتی‌گراد است".format(" و ".join(
-                    tr_date(date_list, tokens, labels)), location[0], " و ".join(tr_time(time_iso, tokens, labels)), result)
+                generated_sentence = (
+                    "اختلاف دمای {} {} {}، {} درجه سانتی‌گراد است".format(
+                        " و ".join(tr_date(date_list, tokens, labels)),
+                        location[0],
+                        " و ".join(tr_time(time_iso, tokens, labels)),
+                        result,
+                    )
+                )
                 return result, generated_sentence
             else:
                 result = np.abs(np.diff(res))
-                generated_sentence = "اختلاف دمای {} {} {}، {} درجه سانتی‌گراد است".format(" و ".join(
-                    tr_date(date_list, tokens, labels)), location[0], " و ".join(tr_time(time_iso, tokens, labels)), " و ".join(result))
+                generated_sentence = (
+                    "اختلاف دمای {} {} {}، {} درجه سانتی‌گراد است".format(
+                        " و ".join(tr_date(date_list, tokens, labels)),
+                        location[0],
+                        " و ".join(tr_time(time_iso, tokens, labels)),
+                        " و ".join(result),
+                    )
+                )
             return result, generated_sentence
         # t==l d1
 
-        if (t == l) and d == 1:
+        if (t == nl) and d == 1:
             res = []
             for tim, lc in zip(time_iso, location):
-                res.append(self.getCityWeather(
-                    lc, datetime.datetime.combine(date_list[0].date(), tim))["temp"])
+                res.append(
+                    self.getCityWeather(
+                        lc, datetime.datetime.combine(date_list[0].date(), tim)
+                    )["temp"]
+                )
             if t == 2:
                 result = "%4.2f" % np.abs(np.diff(res))[0]
-                generated_sentence = "اختلاف دمای {} {} {}، {} درجه سانتی‌گراد میباشد".format(" و ".join(
-                    tr_time(time_iso, tokens, labels)), " و ".join(location), tr_single_date(date_list[0]), result)
+                generated_sentence = (
+                    "اختلاف دمای {} {} {}، {} درجه سانتی‌گراد میباشد".format(
+                        " و ".join(tr_time(time_iso, tokens, labels)),
+                        " و ".join(location),
+                        tr_single_date(date_list[0]),
+                        result,
+                    )
+                )
                 return result, generated_sentence
             else:
                 result = np.abs(np.diff(res))
-                generated_sentence = "اختلاف دمای {} {} {}، {} درجه سانتی‌گراد میباشد".format(" و ".join(
-                    tr_time(time_iso, tokens, labels)), " و ".join(location), tr_single_date(date_list[0]), " و ".join(result))
+                generated_sentence = (
+                    "اختلاف دمای {} {} {}، {} درجه سانتی‌گراد میباشد".format(
+                        " و ".join(tr_time(time_iso, tokens, labels)),
+                        " و ".join(location),
+                        tr_single_date(date_list[0]),
+                        " و ".join(result),
+                    )
+                )
                 return result, generated_sentence
         return None, None

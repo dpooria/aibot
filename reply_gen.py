@@ -1,5 +1,3 @@
-
-
 from hijri_converter import convert
 from aibot_utils import concatenate_bi, cleaning
 import datetime
@@ -7,8 +5,20 @@ from aibot_date import gregorian_to_jalali
 from vocab import miladimonthes, qamariMonthes, num2fa_gen
 
 
-tr_jalali_month = {1: "فروردین", 2: "اردیبهشت", 3: "خرداد", 4: "تیر", 5: "مرداد",
-                   6: "شهریور", 7: "مهر", 8: "آبان", 9: "آذر", 10: "دی", 11: "بهمن", 12: "اسفند"}
+tr_jalali_month = {
+    1: "فروردین",
+    2: "اردیبهشت",
+    3: "خرداد",
+    4: "تیر",
+    5: "مرداد",
+    6: "شهریور",
+    7: "مهر",
+    8: "آبان",
+    9: "آذر",
+    10: "دی",
+    11: "بهمن",
+    12: "اسفند",
+}
 tr_gregorian_month = {v: k for k, v in miladimonthes.items()}
 tr_hijri_month = {v: k for k, v in qamariMonthes.items()}
 
@@ -28,17 +38,15 @@ def tr_single_date(date_, force_date=False):
         today_j = gregorian_to_jalali(today.year, today.month, today.day)
         month = tr_jalali_month[j[1]]
         if j[0] == today_j[0]:
-            translation = "{} {}".format(
-                num2fa_gen[j[2]], month)
+            translation = "{} {}".format(num2fa_gen[j[2]], month)
         elif j[0] == today_j[0] + 1:
-            translation = "{} {} سال بعد".format(
-                num2fa_gen[j[2]], month)
+            translation = "{} {} سال بعد".format(num2fa_gen[j[2]], month)
         elif j[0] == today_j[0] - 1:
-            translation = "{} {} پارسال".format(
-                num2fa_gen[j[2]], month)
+            translation = "{} {} پارسال".format(num2fa_gen[j[2]], month)
         else:
             translation = "{} {} سال {}".format(
-                num2fa_gen[j[2]], month, j[0] if j[0] >= 1400 else j[0] - 1300)
+                num2fa_gen[j[2]], month, j[0] if j[0] >= 1400 else j[0] - 1300
+            )
     return translation
 
 
@@ -46,8 +54,7 @@ def tr_gregorian_date(date_):
     if isinstance(date_, datetime.datetime):
         date_ = date_.date()
     month = tr_gregorian_month[date_.month]
-    translation = "{} {} سال {}".format(
-        num2fa_gen[date_.day], month, date_.year)
+    translation = "{} {} سال {}".format(num2fa_gen[date_.day], month, date_.year)
     return translation
 
 
@@ -57,8 +64,7 @@ def tr_hijri_date(date_):
 
     date_h = convert.Gregorian(date_.year, date_.month, date_.day).to_hijri()
     month = tr_hijri_month[date_h.month]
-    translation = "{} {} سال {}".format(
-        num2fa_gen[date_h.day], month, date_h.year)
+    translation = "{} {} سال {}".format(num2fa_gen[date_h.day], month, date_h.year)
     return translation
 
 

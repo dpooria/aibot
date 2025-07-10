@@ -27,7 +27,8 @@ from vocab import (
     calender_type_dict,
     week_days_asked,
     wrong_date,
-    before_events)
+    before_events,
+)
 
 abs_path = os.path.dirname(os.path.abspath(__file__))
 
@@ -36,8 +37,12 @@ perAnd = " و "
 df_event = pd.read_csv(os.path.join(abs_path, "database/event_data_full.csv"))
 
 
-def tr_isoweek_toperweekday(n): return n - 5 if n >= 5 else n + 2
-def tr_perweekday_toisoweek(n): return n + 5 if n <= 1 else n - 2
+def tr_isoweek_toperweekday(n):
+    return n - 5 if n >= 5 else n + 2
+
+
+def tr_perweekday_toisoweek(n):
+    return n + 5 if n <= 1 else n - 2
 
 
 def format_jalali_date(j):
@@ -61,10 +66,10 @@ def arabic_num(sten):
     stfa = ""
     for c in sten:
         if c in tr_engnum_arabicnum.keys():
-            sten += tr_engnum_arabicnum[c]
+            stfa += tr_engnum_arabicnum[c]
         else:
-            sten += c
-    return sten
+            stfa += c
+    return stfa
 
 
 def convertNum2str(num):
@@ -73,12 +78,15 @@ def convertNum2str(num):
     n = int(np.log10(num)) + 1
     hund = np.zeros(n, dtype="i")
     for i in range(1, n + 1):
-        hund[i - 1] = int(num / 10**(i-1)) % 10
+        hund[i - 1] = int(num / 10 ** (i - 1)) % 10
     st = ""
     if num > 999999999:
         hund = np.pad(hund, (0, 12 - n))
-        st += convertNum2str(hund[-1] * 100 + hund[-2] *
-                             10 + hund[-3]) + " " + num_to_perstr[1000000000]
+        st += (
+            convertNum2str(hund[-1] * 100 + hund[-2] * 10 + hund[-3])
+            + " "
+            + num_to_perstr[1000000000]
+        )
         a = 0
         for i in range(9):
             a += hund[i] * 10**i
@@ -87,8 +95,11 @@ def convertNum2str(num):
             st += perAnd + tmp
     elif num > 999999:
         hund = np.pad(hund, (0, 9 - n))
-        st += convertNum2str(hund[-1] * 100 + hund[-2]
-                             * 10 + hund[-3]) + " " + num_to_perstr[1000000]
+        st += (
+            convertNum2str(hund[-1] * 100 + hund[-2] * 10 + hund[-3])
+            + " "
+            + num_to_perstr[1000000]
+        )
         a = 0
         for i in range(6):
             a += hund[i] * 10**i
@@ -97,8 +108,11 @@ def convertNum2str(num):
             st += perAnd + tmp
     elif num > 999:
         hund = np.pad(hund, (0, 6 - n))
-        st += convertNum2str(hund[-1] * 100 + hund[-2]
-                             * 10 + hund[-3]) + " " + num_to_perstr[1000]
+        st += (
+            convertNum2str(hund[-1] * 100 + hund[-2] * 10 + hund[-3])
+            + " "
+            + num_to_perstr[1000]
+        )
         a = 0
         for i in range(3):
             a += hund[i] * 10**i
@@ -133,24 +147,23 @@ def convertStr2num(st):
             if billion[0] == 0:
                 num += 1000000000
             else:
-                num += convertStr2num(
-                    " ".join(st_arr[:billion[0]])) * 1000000000
+                num += convertStr2num(" ".join(st_arr[: billion[0]])) * 1000000000
             if not st_arr[-1] == num_to_perstr[1000000000]:
-                num += convertStr2num(" ".join(st_arr[billion[0] + 1:]))
+                num += convertStr2num(" ".join(st_arr[billion[0] + 1 :]))
         elif million.shape[0] != 0:
             if million[0] == 0:
                 num += 1000000
             else:
-                num += convertStr2num(" ".join(st_arr[:million[0]])) * 1000000
+                num += convertStr2num(" ".join(st_arr[: million[0]])) * 1000000
             if not st_arr[-1] == num_to_perstr[1000000]:
-                num += convertStr2num(" ".join(st_arr[million[0] + 1:]))
+                num += convertStr2num(" ".join(st_arr[million[0] + 1 :]))
         else:
             if thousand[0] == 0:
                 num += 1000
             else:
-                num += convertStr2num(" ".join(st_arr[:thousand[0]])) * 1000
+                num += convertStr2num(" ".join(st_arr[: thousand[0]])) * 1000
             if not st_arr[-1] == num_to_perstr[1000]:
-                num += convertStr2num(" ".join(st_arr[thousand[0] + 1:]))
+                num += convertStr2num(" ".join(st_arr[thousand[0] + 1 :]))
     else:
         for s in st_arr:
             num += perstr_to_num[s]
@@ -165,20 +178,27 @@ def convertStr2num(st):
 
 def gregorian_to_jalali(gy, gm, gd):
     g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
-    if (gm > 2):
+    if gm > 2:
         gy2 = gy + 1
     else:
         gy2 = gy
-    days = 355666 + (365 * gy) + ((gy2 + 3) // 4) - ((gy2 + 99) //
-                                                     100) + ((gy2 + 399) // 400) + gd + g_d_m[gm - 1]
+    days = (
+        355666
+        + (365 * gy)
+        + ((gy2 + 3) // 4)
+        - ((gy2 + 99) // 100)
+        + ((gy2 + 399) // 400)
+        + gd
+        + g_d_m[gm - 1]
+    )
     jy = -1595 + (33 * (days // 12053))
     days %= 12053
     jy += 4 * (days // 1461)
     days %= 1461
-    if (days > 365):
+    if days > 365:
         jy += (days - 1) // 365
         days = (days - 1) % 365
-    if (days < 186):
+    if days < 186:
         jm = 1 + (days // 31)
         jd = 1 + (days % 31)
     else:
@@ -189,41 +209,42 @@ def gregorian_to_jalali(gy, gm, gd):
 
 def jalali_to_gregorian(jy, jm, jd):
     jy += 1595
-    days = -355668 + (365 * jy) + ((jy // 33) * 8) + \
-        (((jy % 33) + 3) // 4) + jd
-    if (jm < 7):
+    days = -355668 + (365 * jy) + ((jy // 33) * 8) + (((jy % 33) + 3) // 4) + jd
+    if jm < 7:
         days += (jm - 1) * 31
     else:
         days += ((jm - 7) * 30) + 186
     gy = 400 * (days // 146097)
     days %= 146097
-    if (days > 36524):
+    if days > 36524:
         days -= 1
         gy += 100 * (days // 36524)
         days %= 36524
-        if (days >= 365):
+        if days >= 365:
             days += 1
     gy += 4 * (days // 1461)
     days %= 1461
-    if (days > 365):
-        gy += ((days - 1) // 365)
+    if days > 365:
+        gy += (days - 1) // 365
         days = (days - 1) % 365
     gd = days + 1
-    if ((gy % 4 == 0 and gy % 100 != 0) or (gy % 400 == 0)):
+    if (gy % 4 == 0 and gy % 100 != 0) or (gy % 400 == 0):
         kab = 29
     else:
         kab = 28
     sal_a = [0, 31, kab, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
     gm = 0
-    while (gm < 13 and gd > sal_a[gm]):
+    while gm < 13 and gd > sal_a[gm]:
         gd -= sal_a[gm]
         gm += 1
     return [gy, gm, gd]
 
 
-def exact_check_event(text, today_gregorian, today_hijri, today_jalali, calender_type=0):
+def exact_check_event(
+    text, today_gregorian, today_hijri, today_jalali, calender_type=0
+):
     event_list = []
-    modified_text = re.sub("\d+", "", text)
+    modified_text = re.sub(r"\d+", "", text)
     for ae in after_event:
         modified_text = modified_text.replace(ae, "")
     if not modified_text:
@@ -232,12 +253,12 @@ def exact_check_event(text, today_gregorian, today_hijri, today_jalali, calender
         if e in text:
             event_list.append(df_event.iloc[i])
 
-    if not event_list and (not text in wrong_date):
+    if not event_list and (text not in wrong_date):
         st = text
         for yl in year_literals.keys():
             if yl in st:
                 st = re.sub(yl, "", st)
-        st = re.sub("\d+", "", st)
+        st = re.sub(r"\d+", "", st)
 
         for num in perstr_to_num.keys():
             if " " + num + " " in st:
@@ -249,23 +270,23 @@ def exact_check_event(text, today_gregorian, today_hijri, today_jalali, calender
             if st in e:
                 event_list.append(df_event.iloc[i])
 
-    if not event_list and not (text in wrong_date):
+    if not event_list and text not in wrong_date:
         event_tokens = word_tokenize(text)
         n_t = []
         for e in event_tokens:
-            if not e in after_event:
+            if e not in after_event:
                 n_t.append(e)
         st = " ".join(n_t)
-        st = cleaning(re.sub("\d+", "", st))
+        st = cleaning(re.sub(r"\d+", "", st))
         for i, e in enumerate(df_event["event"]):
             if st in e:
                 event_list.append(df_event.iloc[i])
-    if not event_list and (not text in wrong_date):
+    if not event_list and text not in wrong_date:
         st = text
         for yl in year_literals.keys():
             if yl in st:
                 st = re.sub(yl, "", st)
-        st = re.sub("\d+", "", st)
+        st = re.sub(r"\d+", "", st)
 
         for be in before_events:
             st = re.sub(" {} ".format(be), " ", st)
@@ -282,8 +303,7 @@ def exact_check_event(text, today_gregorian, today_hijri, today_jalali, calender
     events = pd.DataFrame(event_list)
     if events.empty:
         return None, (True, True, True)
-    year = year_exporter(
-        text, today_jalali, calender_type=calender_type)
+    year = year_exporter(text, today_jalali, calender_type=calender_type)
     year_type = "j_d"
     if year is None:
         year = today_gregorian.year
@@ -295,10 +315,11 @@ def exact_check_event(text, today_gregorian, today_hijri, today_jalali, calender
     event_date = []
     for i in range(len(events)):
         if year_type == "g_d":
-            a = re.findall("{}-\d+-\d+".format(year), events["g_d"].iloc[i])
+            a = re.findall(r"{}-\d+-\d+".format(year), events["g_d"].iloc[i])
         else:
-            a = re.findall("[(]{}, \d+, \d+[)]".format(year),
-                           events[year_type].iloc[i])
+            a = re.findall(
+                r"[(]{}, \d+, \d+[)]".format(year), events[year_type].iloc[i]
+            )
         if a:
             event_date.append(events.iloc[i])
 
@@ -315,8 +336,7 @@ def exact_check_event(text, today_gregorian, today_hijri, today_jalali, calender
                 dy = year_of_that - year
                 d = datetime.datetime(d.year - dy, d.month, d.day)
             elif year_type == "h_d":
-                year_of_that = convert.Gregorian(
-                    d.year, d.month, d.day).to_hijri().year
+                year_of_that = convert.Gregorian(d.year, d.month, d.day).to_hijri().year
                 dy = year_of_that - year
                 d = datetime.datetime(d.year - dy, d.month, d.day)
             else:
@@ -329,8 +349,7 @@ def exact_check_event(text, today_gregorian, today_hijri, today_jalali, calender
                 d = datetime.datetime(d[0], d[1], d[2])
             elif year_type == "h_d":
                 m_d = jalali_to_gregorian(d[0], d[1], d[2])
-                year_of_that = convert.Gregorian(
-                    m_d[0], m_d[1], m_d[2]).to_hijri().year
+                year_of_that = convert.Gregorian(m_d[0], m_d[1], m_d[2]).to_hijri().year
                 dy = year_of_that - year
                 j_d = (d[0] - dy, d[1], d[2])
                 d = jalali_to_gregorian(j_d[0], j_d[1], j_d[2])
@@ -345,29 +364,30 @@ def exact_check_event(text, today_gregorian, today_hijri, today_jalali, calender
             d = ast.literal_eval(ev["h_d"])
             m_d = convert.Hijri(d[0], d[1], d[2]).to_gregorian()
             if year_type == "j_d":
-                year_of_that = gregorian_to_jalali(
-                    m_d.year, m_d.month, m_d.day)[0]
+                year_of_that = gregorian_to_jalali(m_d.year, m_d.month, m_d.day)[0]
                 dy = year_of_that - year
-                y = convert.Gregorian(
-                    m_d.year - dy, m_d.month, m_d.day).to_hijri().year
+                y = convert.Gregorian(m_d.year - dy, m_d.month, m_d.day).to_hijri().year
                 m_d = convert.Hijri(y, d[1], d[2]).to_gregorian()
                 d = datetime.datetime(
-                    m_d.year, m_d.month, m_d.day) + datetime.timedelta(1)
+                    m_d.year, m_d.month, m_d.day
+                ) + datetime.timedelta(1)
             elif year_type == "g_d":
                 dy = m_d.year - year
                 m_d = convert.Hijri(d[0] - dy, d[1], d[2]).to_gregorian()
                 d = datetime.datetime(
-                    m_d.year, m_d.month, m_d.day) + datetime.timedelta(1)
+                    m_d.year, m_d.month, m_d.day
+                ) + datetime.timedelta(1)
             else:  # year_type == "h_d"
                 h_d = (year, d[1], d[2])
                 m_d = convert.Hijri(h_d[0], h_d[1], h_d[2]).to_gregorian()
                 d = datetime.datetime(
-                    m_d.year, m_d.month, m_d.day) + datetime.timedelta(1)
+                    m_d.year, m_d.month, m_d.day
+                ) + datetime.timedelta(1)
         return d, (False, False, ev["event"])
 
 
 def event_exporter(question, tokens, labels):
-    modified_question = re.sub("\d+", "", question)
+    modified_question = re.sub(r"\d+", "", question)
     for ae in after_event:
         modified_question = re.sub(ae, "", modified_question)
     if len(modified_question) <= 3:
@@ -401,9 +421,9 @@ def event_exporter(question, tokens, labels):
                 if el_loc == 0:
                     el_q = question
                 else:
-                    el_q = cleaning(question[el_loc - 1:])
+                    el_q = cleaning(question[el_loc - 1 :])
                 # el_q = el_q.replace(el, "")
-                el_q = re.sub("\d+", "", el_q)
+                el_q = re.sub(r"\d+", "", el_q)
                 el_q = re.sub(" | ".join(shamsimonthes.keys()), "", el_q)
                 el_q = re.sub(" | ".join(miladimonthes.keys()), "", el_q)
                 el_q = re.sub(" | ".join(qamariMonthes.keys()), "", el_q)
@@ -428,19 +448,19 @@ def event_exporter(question, tokens, labels):
         if len(e_u) < len(event_list):
             e_l = []
             for e in e_u:
-                e_l.append(event_list.iloc[np.where(
-                    event_list["event"] == e)[0][0]])
+                e_l.append(event_list.iloc[np.where(event_list["event"] == e)[0][0]])
             event_list = pd.DataFrame(e_l)
     return event_list
 
 
-def check_event(question, tokens, labels, today_gregorian, today_hijri, today_jalali, calender_type):
+def check_event(
+    question, tokens, labels, today_gregorian, today_hijri, today_jalali, calender_type
+):
     # try events:
     events = event_exporter(question, tokens, labels)
     if events.empty:
         return None, (True, True, True)
-    year = year_exporter(
-        question, today_jalali, calender_type=calender_type)
+    year = year_exporter(question, today_jalali, calender_type=calender_type)
     year_type = "j_d"
     if year is None:
         year = today_gregorian.year
@@ -452,10 +472,11 @@ def check_event(question, tokens, labels, today_gregorian, today_hijri, today_ja
     event_date = []
     for i in range(len(events)):
         if year_type == "g_d":
-            a = re.findall("{}-\d+-\d+".format(year), events["g_d"].iloc[i])
+            a = re.findall(r"{}-\d+-\d+".format(year), events["g_d"].iloc[i])
         else:
-            a = re.findall("[(]{}, \d+, \d+[)]".format(year),
-                           events[year_type].iloc[i])
+            a = re.findall(
+                r"[(]{}, \d+, \d+[)]".format(year), events[year_type].iloc[i]
+            )
         if a:
             event_date.append(events.iloc[i])
 
@@ -481,8 +502,7 @@ def check_event(question, tokens, labels, today_gregorian, today_hijri, today_ja
                 dy = year_of_that - year
                 d = datetime.datetime(d.year - dy, d.month, d.day)
             elif year_type == "h_d":
-                year_of_that = convert.Gregorian(
-                    d.year, d.month, d.day).to_hijri().year
+                year_of_that = convert.Gregorian(d.year, d.month, d.day).to_hijri().year
                 dy = year_of_that - year
                 d = datetime.datetime(d.year - dy, d.month, d.day)
             else:
@@ -495,8 +515,7 @@ def check_event(question, tokens, labels, today_gregorian, today_hijri, today_ja
                 d = datetime.datetime(d[0], d[1], d[2])
             elif year_type == "h_d":
                 m_d = jalali_to_gregorian(d[0], d[1], d[2])
-                year_of_that = convert.Gregorian(
-                    m_d[0], m_d[1], m_d[2]).to_hijri().year
+                year_of_that = convert.Gregorian(m_d[0], m_d[1], m_d[2]).to_hijri().year
                 dy = year_of_that - year
                 j_d = (d[0] - dy, d[1], d[2])
                 d = jalali_to_gregorian(j_d[0], j_d[1], j_d[2])
@@ -511,24 +530,25 @@ def check_event(question, tokens, labels, today_gregorian, today_hijri, today_ja
             d = ast.literal_eval(ev["h_d"])
             m_d = convert.Hijri(d[0], d[1], d[2]).to_gregorian()
             if year_type == "j_d":
-                year_of_that = gregorian_to_jalali(
-                    m_d.year, m_d.month, m_d.day)[0]
+                year_of_that = gregorian_to_jalali(m_d.year, m_d.month, m_d.day)[0]
                 dy = year_of_that - year
-                y = convert.Gregorian(
-                    m_d.year - dy, m_d.month, m_d.day).to_hijri().year
+                y = convert.Gregorian(m_d.year - dy, m_d.month, m_d.day).to_hijri().year
                 m_d = convert.Hijri(y, d[1], d[2]).to_gregorian()
                 d = datetime.datetime(
-                    m_d.year, m_d.month, m_d.day) + datetime.timedelta(1)
+                    m_d.year, m_d.month, m_d.day
+                ) + datetime.timedelta(1)
             elif year_type == "g_d":
                 dy = m_d.year - year
                 m_d = convert.Hijri(d[0] - dy, d[1], d[2]).to_gregorian()
                 d = datetime.datetime(
-                    m_d.year, m_d.month, m_d.day) + datetime.timedelta(1)
+                    m_d.year, m_d.month, m_d.day
+                ) + datetime.timedelta(1)
             else:  # year_type == "h_d"
                 h_d = (year, d[1], d[2])
                 m_d = convert.Hijri(h_d[0], h_d[1], h_d[2]).to_gregorian()
                 d = datetime.datetime(
-                    m_d.year, m_d.month, m_d.day) + datetime.timedelta(1)
+                    m_d.year, m_d.month, m_d.day
+                ) + datetime.timedelta(1)
         return d, (False, False, ev["event"])
 
 
@@ -559,8 +579,7 @@ def build_date_fromisoformat(mtch, calender_type=-1):
             d_ = datetime.datetime(year, month, day)
         elif year > 1420:
             d_ = convert.Hijri(year, month, day).to_gregorian()
-            d_ = datetime.datetime(
-                d_.year, d_.month, d_.day) + datetime.timedelta(1)
+            d_ = datetime.datetime(d_.year, d_.month, d_.day) + datetime.timedelta(1)
         else:
             d_ = jalali_to_gregorian(year, month, day)
             d_ = datetime.datetime(d_[0], d_[1], d_[2])
@@ -569,8 +588,7 @@ def build_date_fromisoformat(mtch, calender_type=-1):
         d_ = datetime.datetime(d_[0], d_[1], d_[2])
     elif calender_type == 2:
         d_ = convert.Hijri(year, month, day).to_gregorian()
-        d_ = datetime.datetime(d_.year, d_.month, d_.day) + \
-            datetime.timedelta(1)
+        d_ = datetime.datetime(d_.year, d_.month, d_.day) + datetime.timedelta(1)
     else:
         d_ = datetime.datetime(year, month, day)
 
@@ -578,16 +596,16 @@ def build_date_fromisoformat(mtch, calender_type=-1):
 
 
 def year_exporter(st, today, calender_type=0):
-    year = re.findall("\d{4}", st)
+    year = re.findall(r"\d{4}", st)
     try:
         if year:
             return int(year[0])
         else:
             # try year literals
             year_literal_ = []
-            for l in year_literals.keys():
-                if l in st:
-                    year_literal_.append(l)
+            for ll in year_literals.keys():
+                if ll in st:
+                    year_literal_.append(ll)
 
             if year_literal_:
                 probable_year = cleaning(year_literal_[0])
@@ -605,17 +623,16 @@ def year_exporter(st, today, calender_type=0):
                         return today.year + n * year_literals[year_literal_[0]]
                     except Exception:
                         pass
-                year = today.year + \
-                    year_literals[year_literal_[0]]
+                year = today.year + year_literals[year_literal_[0]]
                 return year
 
-            year = re.findall(" \d{2} ", st)
+            year = re.findall(r" \d{2} ", st)
             if not year:
-                year = re.findall("^\d{2} ", st)
+                year = re.findall(r"^\d{2} ", st)
             if not year:
-                year = re.findall(" \d{2}$", st)
+                year = re.findall(r" \d{2}$", st)
             if not year:
-                year = re.findall(" \d{2}[؟|.]$", st)
+                year = re.findall(r" \d{2}[؟|.]$", st)
                 if year:
                     year = [year[0].replace("؟", "").replace(".", "")]
             if year and int(year[0]) > 31 and calender_type == 0:
@@ -652,8 +669,7 @@ def get_aweek_dayset(today, val):
     if w_ == 0:
         saturday = today + datetime.timedelta(-today_week)
     else:
-        saturday = today + \
-            datetime.timedelta(w_ * 7 - abs(w_) * (today_week))
+        saturday = today + datetime.timedelta(w_ * 7 - abs(w_) * (today_week))
     res = []
     for i in range(7):
         res.append(saturday + datetime.timedelta(i))
@@ -664,9 +680,9 @@ def get_aweek_dayset(today, val):
 def day_exporter(st, today, no_period_return=False):
     # try weeks days:
     d_d = []
-    for l in weeks_day_dict.keys():
-        if l in st:
-            d_d.append(l)
+    for ll in weeks_day_dict.keys():
+        if ll in st:
+            d_d.append(ll)
     is_week_day_asked = False
     for w in week_days_asked:
         if w in st:
@@ -677,9 +693,9 @@ def day_exporter(st, today, no_period_return=False):
         today_week = tr_isoweek_toperweekday(today.weekday())
         d_w = []
 
-        for l in week_literals.keys():
-            if l in st:
-                d_w.append(l)
+        for ll in week_literals.keys():
+            if ll in st:
+                d_w.append(ll)
         if not d_w:
             w_ = 0
         else:
@@ -687,27 +703,26 @@ def day_exporter(st, today, no_period_return=False):
         if w_ == 0:
             day = today + datetime.timedelta(week_val - today_week)
         else:
-            day = today + \
-                datetime.timedelta(w_ * 7 - abs(w_) * (today_week - week_val))
+            day = today + datetime.timedelta(w_ * 7 - abs(w_) * (today_week - week_val))
         return day, True
 
     # try day literals
     d_d = []
-    for l in day_literals.keys():
-        if l in st:
-            d_d.append(l)
+    for ll in day_literals.keys():
+        if ll in st:
+            d_d.append(ll)
     if d_d:
         val = day_literals[d_d[-1]]
         if isinstance(val, complex) and not no_period_return:
             match_liter = st.find(d_d[-1])
-            b_match_liter = st[:match_liter + len(d_d[-1]) + 1]
-            n = re.findall("\d+\s+{}".format(d_d[-1]), b_match_liter)
+            b_match_liter = st[: match_liter + len(d_d[-1]) + 1]
+            n = re.findall(r"\d+\s+{}".format(d_d[-1]), b_match_liter)
             if val == 0j or val == 7j or val == -7j:
                 day = get_aweek_dayset(today, val.imag)
             else:
                 if n:
                     try:
-                        n = re.findall("\d+", n[0])
+                        n = re.findall(r"\d+", n[0])
                         day = []
                         for i in range(1, n + 1):
                             day.append(today + datetime.timedelta(i))
@@ -733,11 +748,11 @@ def day_exporter(st, today, no_period_return=False):
         if isinstance(val, complex):
             val = val.imag
         match_liter = st.find(d_d[-1])
-        b_match_liter = st[:match_liter + len(d_d[-1]) + 1]
-        n = re.findall("\d+\s+{}".format(d_d[-1]), b_match_liter)
+        b_match_liter = st[: match_liter + len(d_d[-1]) + 1]
+        n = re.findall(r"\d+\s+{}".format(d_d[-1]), b_match_liter)
         if n:
             try:
-                n = re.findall("\d+", n[0])
+                n = re.findall(r"\d+", n[0])
                 day = datetime.timedelta(int(n[0]) * val) + today
             except Exception:
                 day = datetime.timedelta(val) + today
@@ -749,25 +764,24 @@ def day_exporter(st, today, no_period_return=False):
                     if w in perstr_to_num.keys():
                         s.append(w)
                 if s:
-                    day = today + datetime.timedelta(val *
-                                                     convertStr2num(" ".join(s)))
+                    day = today + datetime.timedelta(val * convertStr2num(" ".join(s)))
                 else:
                     day = today + datetime.timedelta(val)
             except Exception:
                 day = today + datetime.timedelta(val)
         return day, True
     # try raw numbers
-    day = re.findall(" \d{2} ", st)
+    day = re.findall(r" \d{2} ", st)
     if not day:
-        day = re.findall("^\d{2} ", st)
+        day = re.findall(r"^\d{2} ", st)
     if not day:
-        day = re.findall(" \d{2}$", st)
+        day = re.findall(r" \d{2}$", st)
     if not day:
-        day = re.findall(" \d ", st)
+        day = re.findall(r" \d ", st)
     if not day:
-        day = re.findall("^\d ", st)
+        day = re.findall(r"^\d ", st)
     if not day:
-        day = re.findall(" \d$", st)
+        day = re.findall(r" \d$", st)
     if day and int(day[0]) < 31:
         return int(day[0]), False
     # try writed numbers
@@ -815,16 +829,23 @@ def month_matched(st_space, month_place, today, calender_type=0):
     return (day, year, day_is_none, year_is_none)
 
 
-def export_date_single(st_arr, today_list, calender_type_is_found, calender_type, no_period_return=False):
+def export_date_single(
+    st_arr, today_list, calender_type_is_found, calender_type, no_period_return=False
+):
     today = today_list[calender_type]
     is_day_none = False
     is_month_none = False
     is_year_none = False
-    st = "".join(st_arr).replace("/", "-").replace(",",
-                                                   "-").replace(".", "-").replace("\\", "-")
+    st = (
+        "".join(st_arr)
+        .replace("/", "-")
+        .replace(",", "-")
+        .replace(".", "-")
+        .replace("\\", "-")
+    )
     st = cleaning(st)
     st_space = cleaning(" ".join(st_arr))
-    mtch = re.findall("\d+\-\d+\-\d+", st)
+    mtch = re.findall(r"\d+\-\d+\-\d+", st)
     if mtch:
         try:
             if calender_type_is_found:
@@ -836,7 +857,7 @@ def export_date_single(st_arr, today_list, calender_type_is_found, calender_type
             pass
 
     # try mm-dd format
-    mtch = re.findall("\d+\-\d+", st)
+    mtch = re.findall(r"\d+\-\d+", st)
     if mtch:
         try:
             mtch_n = mtch[0].split("-")
@@ -847,8 +868,7 @@ def export_date_single(st_arr, today_list, calender_type_is_found, calender_type
                 day = month
                 month = tmp
             mtch_place = st_space.find(mtch_n[-1])
-            year = year_exporter(
-                st_space[mtch_place + len(mtch_n[-1]):], today)
+            year = year_exporter(st_space[mtch_place + len(mtch_n[-1]) :], today)
             if not year:
                 mtch_place = st.find(mtch[0])
                 year = year_exporter(st_space[:mtch_place], today)
@@ -862,8 +882,7 @@ def export_date_single(st_arr, today_list, calender_type_is_found, calender_type
             elif calender_type == 2:
                 d_ = convert.Hijri(year, month, day).to_gregorian()
                 year, month, day = d_.year, d_.month, d_.day
-                d_ = datetime.datetime(year, month, day) + \
-                    datetime.timedelta(1)
+                d_ = datetime.datetime(year, month, day) + datetime.timedelta(1)
             else:
                 d_ = datetime.datetime(year, month, day)
             return d_, (is_day_none, is_month_none, is_year_none)
@@ -876,7 +895,7 @@ def export_date_single(st_arr, today_list, calender_type_is_found, calender_type
     if not mtch:
         # mtch = re.findall("| ".join(shamsimonthes.keys()), st)
         for s in shamsimonthes.keys():
-            mtch = re.findall("\s{}$".format(s), st)
+            mtch = re.findall(r"\s{}$".format(s), st)
             if mtch:
                 break
     if mtch:
@@ -885,7 +904,8 @@ def export_date_single(st_arr, today_list, calender_type_is_found, calender_type
         month_place = st_space.find(cleaning(mtch[0]))
         try:
             day, year, is_day_none, is_year_none = month_matched(
-                st_space, month_place, today_list[0])
+                st_space, month_place, today_list[0]
+            )
             if not is_day_none:
                 year, month, day = jalali_to_gregorian(year, month, day)
                 d_ = datetime.datetime(year, month, day)
@@ -896,7 +916,7 @@ def export_date_single(st_arr, today_list, calender_type_is_found, calender_type
     if not mtch:
         # mtch = re.findall("| ".join(miladimonthes.keys()), st)
         for s in miladimonthes.keys():
-            mtch = re.findall("\s{}$".format(s), st)
+            mtch = re.findall(r"\s{}$".format(s), st)
             if mtch:
                 break
 
@@ -906,7 +926,8 @@ def export_date_single(st_arr, today_list, calender_type_is_found, calender_type
         month_place = st_space.find(cleaning(mtch[0]))
         try:
             day, year, is_day_none, is_year_none = month_matched(
-                st_space, month_place, today, 1)
+                st_space, month_place, today, 1
+            )
             if not is_day_none:
                 d_ = datetime.datetime(year, month, day)
                 return d_, (is_day_none, is_month_none, is_year_none)
@@ -916,7 +937,7 @@ def export_date_single(st_arr, today_list, calender_type_is_found, calender_type
     if not mtch:
         # mtch = re.findall("| ".join(qamariMonthes.keys()), st)
         for s in qamariMonthes.keys():
-            mtch = re.findall("\s{}$".format(s), st)
+            mtch = re.findall(r"\s{}$".format(s), st)
             if mtch:
                 break
     if mtch:
@@ -925,11 +946,13 @@ def export_date_single(st_arr, today_list, calender_type_is_found, calender_type
         month_place = st_space.find(cleaning(mtch[0]))
         try:
             day, year, is_day_none, is_year_none = month_matched(
-                st_space, month_place, today_list[2], 2)
+                st_space, month_place, today_list[2], 2
+            )
             if not is_day_none:
                 d_ = convert.Hijri(year, month, day).to_gregorian()
-                d_ = datetime.datetime(
-                    d_.year, d_.month, d_.day) + datetime.timedelta(1)
+                d_ = datetime.datetime(d_.year, d_.month, d_.day) + datetime.timedelta(
+                    1
+                )
                 return d_, (is_day_none, is_month_none, is_year_none)
         except Exception:
             pass
@@ -944,9 +967,9 @@ def export_date_single(st_arr, today_list, calender_type_is_found, calender_type
 
     # try month literals
     d_m = []
-    for l in month_literals.keys():
-        if l in st:
-            d_m.append(l)
+    for ll in month_literals.keys():
+        if ll in st:
+            d_m.append(ll)
     if d_m:
         is_month_none = False
         month = today.month + month_literals[d_m[0]]
@@ -958,14 +981,14 @@ def export_date_single(st_arr, today_list, calender_type_is_found, calender_type
         month_loc = st.find(d_m[0])
         try:
             day, year, is_day_none, is_year_none = month_matched(
-                st_space, month_loc, today)
+                st_space, month_loc, today
+            )
             if calender_type == 0:
                 year, month, day = jalali_to_gregorian(year, month, day)
                 d_ = datetime.datetime(year, month, day)
             elif calender_type == 2:
                 year, _, day = convert.Hijri(year, month, day)
-                d_ = datetime.datetime(year, month, day) + \
-                    datetime.timedelta(1)
+                d_ = datetime.datetime(year, month, day) + datetime.timedelta(1)
             else:
                 d_ = datetime.datetime(year, month, day)
 
@@ -983,13 +1006,15 @@ def export_date(question, tokens, labels, no_period_return=False):
     # find calender type
     today_gregorian = datetime.datetime.today()
     today_jalali = gregorian_to_jalali(
-        today_gregorian.year, today_gregorian.month, today_gregorian.day)
-    today_jalali = datetime.datetime(
-        today_jalali[0], today_jalali[1], today_jalali[2])
+        today_gregorian.year, today_gregorian.month, today_gregorian.day
+    )
+    today_jalali = datetime.datetime(today_jalali[0], today_jalali[1], today_jalali[2])
     today_hijri = convert.Gregorian(
-        today_gregorian.year, today_gregorian.month, today_gregorian.day).to_hijri()
+        today_gregorian.year, today_gregorian.month, today_gregorian.day
+    ).to_hijri()
     today_hijri = datetime.datetime(
-        today_hijri.year, today_hijri.month, today_hijri.day)
+        today_hijri.year, today_hijri.month, today_hijri.day
+    )
     today_list = [today_jalali, today_gregorian, today_hijri]
     calender_type_find = []
     for c in calender_type_dict.keys():
@@ -1006,8 +1031,9 @@ def export_date(question, tokens, labels, no_period_return=False):
     if n == 0:
         st_arr = word_tokenize(question)
         d_single = export_date_single(
-            st_arr, today_list, calender_type_is_found, calender_type, no_period_return)
-        if d_single[0] != None:
+            st_arr, today_list, calender_type_is_found, calender_type, no_period_return
+        )
+        if d_single[0] is not None:
             if isinstance(d_single[0], list):
                 dat = []
                 for eds in d_single[0]:
@@ -1015,7 +1041,17 @@ def export_date(question, tokens, labels, no_period_return=False):
                 return dat
             return [d_single]
         else:
-            return [check_event(question, tokens, labels, today_gregorian, today_hijri, today_jalali, calender_type)]
+            return [
+                check_event(
+                    question,
+                    tokens,
+                    labels,
+                    today_gregorian,
+                    today_hijri,
+                    today_jalali,
+                    calender_type,
+                )
+            ]
     elif n >= 2:
         d_ = []
         false_ner = False
@@ -1023,25 +1059,34 @@ def export_date(question, tokens, labels, no_period_return=False):
         for i in range(n):
             st_arr = []
             if i < n - 1:
-                ida = i_date[np.where(
-                    (i_date > b_date[i]) & (i_date < b_date[i + 1]))]
+                ida = i_date[np.where((i_date > b_date[i]) & (i_date < b_date[i + 1]))]
             else:
                 ida = i_date[np.where(i_date > b_date[i])]
             for t in np.r_[b_date[i], ida]:
                 st_arr.append(tokens[int(t)])
             texts_date.append(" ".join(st_arr))
-            eds = export_date_single(st_arr, today_list,
-                                     calender_type_is_found, calender_type, no_period_return)
+            eds = export_date_single(
+                st_arr,
+                today_list,
+                calender_type_is_found,
+                calender_type,
+                no_period_return,
+            )
             if isinstance(eds[0], list):
                 for e in eds[0]:
                     d_.append((e, eds[1]))
             else:
                 d_.append(eds)
         for i, d in enumerate(d_):
-            if d[0] == None:
+            if d[0] is None:
                 if len(texts_date) == len(d_):
-                    d_[i] = exact_check_event(texts_date[i], today_gregorian,
-                                              today_hijri, today_jalali, calender_type)
+                    d_[i] = exact_check_event(
+                        texts_date[i],
+                        today_gregorian,
+                        today_hijri,
+                        today_jalali,
+                        calender_type,
+                    )
 
             # if d_[i] == None:
             #     d_[i] = check_event(question, tokens, labels, today_gregorian,
@@ -1062,26 +1107,44 @@ def export_date(question, tokens, labels, no_period_return=False):
             st_arr.append(tokens[int(t)])
 
         d_ = export_date_single(
-            st_arr, today_list, calender_type_is_found, calender_type, no_period_return)
+            st_arr, today_list, calender_type_is_found, calender_type, no_period_return
+        )
         if isinstance(d_[0], list):
             dates = []
             for dat in d_[0]:
                 dates.append((dat, d_[1]))
             return dates
-        if d_[0] == None or d_[1][0] or d_[1][1]:
-            d_ = exact_check_event(" ".join(st_arr), today_gregorian,
-                                   today_hijri, today_jalali, calender_type)
+        if d_[0] is None or d_[1][0] or d_[1][1]:
+            d_ = exact_check_event(
+                " ".join(st_arr),
+                today_gregorian,
+                today_hijri,
+                today_jalali,
+                calender_type,
+            )
 
-        if d_[0] == None:
-            d_ = export_date_single(word_tokenize(
-                question), today_list, calender_type_is_found, calender_type, no_period_return)
+        if d_[0] is None:
+            d_ = export_date_single(
+                word_tokenize(question),
+                today_list,
+                calender_type_is_found,
+                calender_type,
+                no_period_return,
+            )
             if isinstance(d_[0], list):
                 dates = []
                 for dat in d_[0]:
                     dates.append((dat, d_[1]))
                 return dates
 
-        if d_[0] == None:
-            d_ = check_event(question, tokens, labels, today_gregorian,
-                             today_hijri, today_jalali, calender_type)
+        if d_[0] is None:
+            d_ = check_event(
+                question,
+                tokens,
+                labels,
+                today_gregorian,
+                today_hijri,
+                today_jalali,
+                calender_type,
+            )
         return [d_]

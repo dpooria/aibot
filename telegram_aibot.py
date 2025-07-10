@@ -1,23 +1,31 @@
-
 import logging
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler
-from aibot import BOT
-#import ftransc.core as ft
-import time
 
-type_dict = {"-1": "پرسش خارج از توان",
-             "1": "آب و هوا",
-             "2": "اوقات شرعی",
-             "3": "ساعت",
-             "4": "تقویم"}
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import (
+    CallbackQueryHandler,
+    CommandHandler,
+    Filters,
+    MessageHandler,
+    Updater,
+)
+
+from aibot import BOT
+
+type_dict = {
+    "-1": "پرسش خارج از توان",
+    "1": "آب و هوا",
+    "2": "اوقات شرعی",
+    "3": "ساعت",
+    "4": "تقویم",
+}
 
 # build the bot
 bot = BOT()
 
 # Enable logging
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO)
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+)
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +52,7 @@ def report(update, context):
     """Send a message when the command /report is issued."""
     with open("report/reports.txt", "a") as freport:
         print(update.message.text, file=freport)
-    update.message.reply_text('ممنون. گزارش شما ثبت شد')
+    update.message.reply_text("ممنون. گزارش شما ثبت شد")
 
 
 st_res_show = "نوع سوال: {} \n نام شهرها: {} \n تاریخ: {} \n زمان: {} \n اوقات شرعی: {} \n نوع تقویم: {} \n مناسبت‌ها: {} \n جواب شما: {} \n لطفا در زیر درست یا غلط بودن پاسخ را مشخص کنید"
@@ -53,19 +61,30 @@ st_res_show = "نوع سوال: {} \n نام شهرها: {} \n تاریخ: {} \n
 def echo(update, context):
     """on text message"""
     res, generated_sentence = bot.aibot(update.message.text)
-    res_str = st_res_show.format(type_dict[res["type"][0]], res["city"], res["date"],
-                                 res["time"], res["religious_time"], res["calendar_type"], res["event"], res["result"])
+    res_str = st_res_show.format(
+        type_dict[res["type"][0]],
+        res["city"],
+        res["date"],
+        res["time"],
+        res["religious_time"],
+        res["calendar_type"],
+        res["event"],
+        res["result"],
+    )
 
-    keyboard = [[
-        InlineKeyboardButton("👍", callback_data='positive'),
-        InlineKeyboardButton("👎", callback_data='negative'),
-    ]]
+    keyboard = [
+        [
+            InlineKeyboardButton("👍", callback_data="positive"),
+            InlineKeyboardButton("👎", callback_data="negative"),
+        ]
+    ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     update.message.reply_text(res_str, reply_markup=reply_markup)
     update.message.reply_text(generated_sentence)
     file_name = "userID{}messageID{}".format(
-        update.message.chat.username, update.message.message_id)
+        update.message.chat.username, update.message.message_id
+    )
     with open("collect/{}.txt".format(file_name), "w") as f_res:
         print(update.message.text, file=f_res)
         print("\n", file=f_res)
@@ -165,10 +184,11 @@ def button(update, context):
     query.answer()
 
     if not query.data == "Null":
-        with open("collect2/userID{}FeedBack{}.txt".format(query.id, query.data), "a") as ffeed:
+        with open(
+            "collect2/userID{}FeedBack{}.txt".format(query.id, query.data), "a"
+        ) as ffeed:
             print(query.message, end="\n\n", file=ffeed)
-        keyboard = [[InlineKeyboardButton(
-            'ممنون از شما!', callback_data='Null')]]
+        keyboard = [[InlineKeyboardButton("ممنون از شما!", callback_data="Null")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
         query.message.edit_reply_markup(reply_markup=reply_markup)
 
@@ -177,16 +197,14 @@ def error(update, context):
     """Log Errors caused by Updates."""
     with open("errorlog.txt", "a") as ferr:
         logger.warning('Update "%s" caused error "%s"', update, context.error)
-        print('Update "%s" caused error "%s"' %
-              (update, context.error), file=ferr)
+        print('Update "%s" caused error "%s"' % (update, context.error), file=ferr)
 
 
 def main():
     """Start the bot."""
-    
-    REQUEST_KWARGS = {'proxy_url': 'http://127.0.0.1:8118'}
-    updater = Updater(
-        "****", use_context=True, request_kwargs=REQUEST_KWARGS)
+
+    REQUEST_KWARGS = {"proxy_url": "http://127.0.0.1:8118"}
+    updater = Updater("****", use_context=True, request_kwargs=REQUEST_KWARGS)
 
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
@@ -199,7 +217,7 @@ def main():
 
     # on noncommand i.e message - echo the message on Telegram
     dp.add_handler(MessageHandler(Filters.text, echo))
-#     dp.add_handler(MessageHandler(Filters.voice, transcribe_voice))
+    #     dp.add_handler(MessageHandler(Filters.voice, transcribe_voice))
 
     # log all errors
     dp.add_error_handler(error)
@@ -209,5 +227,5 @@ def main():
     updater.idle()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
